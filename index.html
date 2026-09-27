@@ -1,0 +1,1781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pack Rip</title>
+<meta name="description" content="Open every Pokémon TCG pack ever made and build your collection online.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect x='14' y='4' width='36' height='56' rx='5' fill='%23ff3d5a'/><path d='M14 16 l6 -4 6 4 6 -4 6 4 6 -4 6 4' stroke='%23fff' stroke-width='3' fill='none'/><circle cx='32' cy='38' r='9' fill='%23fff'/></svg>">
+<style>
+:root{
+  --bg:#0d0f1a; --bg2:#151829; --panel:#1b1f35; --panel2:#232845; --line:#2f3558;
+  --text:#eef0ff; --dim:#9aa0c7; --faint:#646a94;
+  --red:#ff3d5a; --gold:#ffc83d; --blue:#4da3ff; --pink:#ff5fd2; --green:#3ddc84;
+  --radius:14px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
+body{min-height:100vh;background:radial-gradient(1200px 600px at 50% -200px,#26204a 0%,var(--bg) 70%) fixed}
+button{font:inherit;color:inherit;cursor:pointer}
+input{font:inherit}
+a{color:var(--blue)}
+.hide{display:none!important}
+
+/* ---------- header ---------- */
+header{position:sticky;top:0;z-index:20;background:rgba(13,15,26,.86);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line)}
+.bar{max-width:1200px;margin:auto;display:flex;align-items:center;gap:14px;padding:10px 16px;flex-wrap:wrap}
+.logo{font-weight:900;font-style:italic;font-size:26px;letter-spacing:-1px;text-decoration:none;color:var(--text);
+  display:flex;align-items:center;gap:8px;white-space:nowrap}
+.logo b{color:var(--red)}
+.logo .mini{width:22px;height:30px;border-radius:4px;background:linear-gradient(160deg,#ff6b81,#c2185b);
+  box-shadow:0 0 0 2px #fff3 inset;transform:rotate(-8deg)}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav a{padding:8px 12px;border-radius:999px;text-decoration:none;color:var(--dim);font-weight:600;font-size:15px}
+nav a.on{background:var(--panel2);color:var(--text)}
+nav a:hover{color:var(--text)}
+.who{margin-left:auto;display:flex;align-items:center;gap:10px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--faint)}
+.dot.ok{background:var(--green);box-shadow:0 0 8px var(--green)}
+.dot.bad{background:var(--red)}
+.btn{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:8px 16px;font-weight:700}
+.btn:hover{border-color:var(--dim)}
+.btn.main{background:var(--red);border-color:var(--red);color:#fff}
+.btn.main:hover{filter:brightness(1.1)}
+.btn.small{padding:5px 12px;font-size:14px}
+.iconbtn{background:none;border:0;font-size:20px;padding:4px 6px;color:var(--dim)}
+
+main{max-width:1200px;margin:auto;padding:18px 16px 60px}
+h1{font-size:28px;margin:6px 0 4px;letter-spacing:-.5px}
+h2{font-size:20px;margin:26px 0 10px}
+.sub{color:var(--dim);margin:0 0 16px}
+.banner{background:#3a1622;border:1px solid #7a2a3d;color:#ffd1da;border-radius:var(--radius);padding:12px 16px;margin-bottom:16px}
+.note{color:var(--dim);font-size:14px}
+.empty{color:var(--dim);text-align:center;padding:50px 10px}
+.spin{width:34px;height:34px;border:4px solid var(--line);border-top-color:var(--red);border-radius:50%;
+  animation:spin .8s linear infinite;margin:50px auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- pack shelf: one big pack at a time, scroll sideways ---------- */
+.packtop{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:12px}
+.packtop h1{margin:0}
+.search{flex:1;min-width:200px;background:var(--panel);border:1px solid var(--line);border-radius:999px;
+  padding:10px 16px;color:var(--text);outline:none}
+.search:focus{border-color:var(--dim)}
+.tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
+.chips.scroll{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -16px 0;padding:0 16px}
+.chips.scroll::-webkit-scrollbar{display:none}
+.chip{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:14px;color:var(--dim);white-space:nowrap}
+.chip.on{background:var(--text);color:var(--bg);border-color:var(--text);font-weight:700}
+.shelf{--pw:clamp(230px,min(27vw,36vh),330px);position:relative;margin:0 -16px}
+.track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;perspective:1400px;
+  padding:34px calc(50% - var(--pw) / 2) 26px}
+.track::-webkit-scrollbar{display:none}
+.track.dragging{scroll-snap-type:none;cursor:grabbing}
+.slot{flex:none;width:var(--pw);scroll-snap-align:center;background:none;border:0;padding:0 12px;position:relative}
+.slot .pack{transition:transform .12s ease-out,filter .12s;will-change:transform}
+.slot.on .pack{box-shadow:0 26px 60px #000c,0 0 50px hsl(var(--h) 90% 60% / .35),inset 0 0 0 1px #ffffff50}
+.slot.on:hover .pack{animation:hover 1.6s ease-in-out infinite}
+@keyframes hover{50%{translate:0 -8px}}
+.arrow{position:absolute;top:50%;translate:0 -50%;z-index:15;width:48px;height:48px;border-radius:50%;
+  background:#0d0f1acc;border:1px solid var(--line);font-size:30px;line-height:1;display:grid;place-items:center;padding:0 0 4px}
+.arrow:hover{border-color:var(--dim)}
+.arrow.l{left:max(12px,calc(50% - var(--pw) * 1.7))}
+.arrow.r{right:max(12px,calc(50% - var(--pw) * 1.7))}
+.pinfo{text-align:center;min-height:150px}
+.ppack{margin-top:8px;font-size:16px;color:var(--dim)}
+.ppack b{color:var(--green);font-size:20px}
+.pl{font-weight:800;font-size:17px;margin:2px 0 6px}
+.pl.up{color:var(--green)}
+.pl.down{color:#ff8a9c}
+.pname{font-size:26px;font-weight:900;letter-spacing:-.5px}
+.btn.rip{margin-top:14px;background:linear-gradient(135deg,#ff3d5a,#ff8a3d);border:0;color:#fff;font-size:20px;
+  font-weight:900;font-style:italic;letter-spacing:1px;padding:14px 46px;box-shadow:0 8px 30px #ff3d5a66;animation:ripglow 1.8s ease-in-out infinite}
+.btn.rip:hover{filter:brightness(1.12)}
+@keyframes ripglow{50%{box-shadow:0 8px 44px #ff3d5aaa;transform:scale(1.04)}}
+
+/* a booster pack, drawn in CSS: crimped foil ends, set logo, holo foil that moves */
+.pack{--h:220;position:relative;width:100%;aspect-ratio:5/8.4;border-radius:7px;overflow:hidden;
+  background:linear-gradient(160deg,hsl(var(--h) 88% 66%),hsl(var(--h) 74% 44%) 40%,hsl(calc(var(--h) + 35) 80% 26%));
+  box-shadow:0 18px 40px #000a,inset 0 0 0 1px #ffffff40}
+.pack::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(115deg,transparent 30%,#ffffff55 45%,transparent 60%);background-size:250% 100%;
+  animation:sheen 4.5s ease-in-out infinite}
+@keyframes sheen{0%,100%{background-position:120% 0}50%{background-position:-20% 0}}
+.pack .pfoil{position:absolute;inset:0;pointer-events:none;mix-blend-mode:overlay;opacity:.35;
+  background:linear-gradient(125deg,#ff4fd8,#4ff0ff 25%,#fff36b 50%,#ff4fd8 75%,#4ff0ff);background-size:300% 300%;
+  background-position:var(--gx,50%) var(--gy,50%)}
+.pack .glare{position:absolute;inset:0;pointer-events:none;mix-blend-mode:soft-light;
+  background:radial-gradient(circle at var(--gx,35%) var(--gy,20%),#fffc,transparent 50%)}
+.pack .crimp{position:absolute;left:0;right:0;height:7%;z-index:2;
+  background:repeating-linear-gradient(90deg,#ffffff45 0 3px,#00000030 3px 6px),hsl(var(--h) 55% 28%)}
+.pack .crimp.t{top:0}.pack .crimp.b{bottom:0}
+.pack .lg{position:absolute;left:8%;width:84%;top:15%;height:30%;object-fit:contain;filter:drop-shadow(0 4px 8px #000a)}
+.pack .ball{position:absolute;left:50%;top:30%;width:84%;aspect-ratio:1;translate:-50% 0;border-radius:50%;opacity:.13;
+  border:7px solid #fff;pointer-events:none}
+.pack .ball::before{content:"";position:absolute;left:-7px;right:-7px;top:50%;height:7px;translate:0 -50%;background:#fff}
+.pack .ball::after{content:"";position:absolute;left:50%;top:50%;width:30%;aspect-ratio:1;translate:-50% -50%;border-radius:50%;
+  border:7px solid #fff;background:hsl(var(--h) 74% 44%)}
+.pack .band{position:absolute;left:0;right:0;bottom:12%;padding:8px 8%;background:#0006;display:flex;flex-direction:column;
+  align-items:center;gap:2px;text-align:center}
+.pack .band b{font-size:14px;line-height:1.15;text-shadow:0 2px 4px #000}
+.pack .band span{font-size:9px;letter-spacing:2px;font-weight:800;opacity:.8}
+.pack .sn{position:absolute;left:6%;right:6%;top:24%;font-weight:900;font-size:20px;text-align:center;text-shadow:0 2px 4px #000a;line-height:1.1}
+
+/* ---------- cards ---------- */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px}
+.card{position:relative;background:none;border:0;padding:0;text-align:left;min-width:0;width:100%;display:block}
+.card img{width:100%;aspect-ratio:63/88;object-fit:cover;border-radius:5%/3.6%;display:block;background:var(--panel)}
+.card.miss img{filter:grayscale(1) brightness(.45);opacity:.5}
+.card .cap{font-size:13px;margin-top:6px;display:flex;justify-content:space-between;gap:6px}
+.card .cap span:first-child{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--dim)}
+.price{color:var(--green);font-weight:700;white-space:nowrap}
+.price.est{color:var(--gold)}
+.qty{position:absolute;top:6px;right:6px;background:#000c;border-radius:999px;padding:2px 8px;font-size:12px;font-weight:800}
+.newb{position:absolute;top:6px;right:6px;background:var(--gold);color:#221;border-radius:999px;padding:2px 8px;font-size:12px;font-weight:900}
+.t4 img{box-shadow:0 0 0 2px var(--blue),0 0 14px #4da3ff88}
+.t5 img{box-shadow:0 0 0 2px var(--gold),0 0 16px #ffc83d99}
+.t6 img{box-shadow:0 0 0 2px var(--pink),0 0 18px #ff5fd2aa}
+.t7 img{box-shadow:0 0 0 3px #fff,0 0 22px #b388ff,0 0 40px #4dd0e1aa}
+/* ---------- PokeBux ---------- */
+.buxchip{display:inline-flex;align-items:center;gap:6px;background:#2a2410;border:1px solid #6b5a1a;color:#ffd24d;
+  border-radius:999px;padding:5px 11px;font-weight:800;font-size:14px;white-space:nowrap;text-decoration:none}
+.coin{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;flex:none;vertical-align:-3px;
+  background:radial-gradient(circle at 35% 30%,#fff6c2,#ffc83d 45%,#b8860b);box-shadow:inset 0 0 0 2px #a07400;
+  font-size:10px;font-weight:900;color:#7a5500;font-style:normal;line-height:1}
+.toast{position:fixed;left:50%;bottom:26px;translate:-50% 0;z-index:70;background:#1b1f35;border:1px solid #6b5a1a;color:var(--text);
+  padding:12px 18px;border-radius:14px;font-weight:700;box-shadow:0 10px 30px #000a;max-width:min(520px,92vw);text-align:center;
+  animation:toast 3.6s forwards;pointer-events:none}
+@keyframes toast{0%{opacity:0;transform:translateY(20px)}8%{opacity:1;transform:none}85%{opacity:1}100%{opacity:0}}
+
+/* ---------- earning ---------- */
+.earners{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;max-width:620px;margin:10px auto 0}
+.earner{text-align:center;position:relative}
+.earner img{width:100%;aspect-ratio:63/88;border-radius:5%/3.6%;display:block;box-shadow:0 12px 30px #000a;animation:earnbob 3s ease-in-out infinite}
+.earner:nth-child(2) img{animation-delay:-1s}.earner:nth-child(3) img{animation-delay:-2s}
+@keyframes earnbob{50%{transform:translateY(-6px)}}
+.earner .en{font-weight:800;margin-top:8px;font-size:14px}
+.earner .ev{color:var(--dim);font-size:13px}
+.earner .er{color:#ffd24d;font-weight:800;font-size:13px}
+.earner .medal{position:absolute;top:-10px;left:50%;translate:-50% 0;background:var(--gold);color:#221;border-radius:999px;padding:2px 10px;font-weight:900;font-size:12px;z-index:1}
+.earnbox{max-width:620px;margin:26px auto 0;text-align:center;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px 18px}
+.ecount{font-size:clamp(40px,10vw,70px);font-weight:900;color:#ffd24d;font-variant-numeric:tabular-nums;line-height:1.05;
+  text-shadow:0 0 30px #ffc83d55}
+.ecount .coin{width:.8em;height:.8em;font-size:.45em;vertical-align:.05em;margin-right:.15em}
+.erate{color:var(--dim);margin:6px 0 16px;font-weight:600}
+.ebar{height:14px;border-radius:99px;background:var(--bg2);overflow:hidden;box-shadow:inset 0 0 0 1px #ffffff15}
+.ebar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#ffb23d,#ffe14d);transition:width .3s linear}
+.ebar.full i{background:linear-gradient(90deg,#ff3d5a,#ff8a3d);animation:fullpulse 1s ease-in-out infinite alternate}
+@keyframes fullpulse{to{filter:brightness(1.4)}}
+.efull{margin:8px 0 16px;font-weight:700;color:var(--dim)}
+.efull.full{color:#ff8a9c}
+.btn.claim{background:linear-gradient(135deg,#ffc83d,#ff9a3d);border:0;color:#221;font-size:20px;font-weight:900;padding:13px 40px;box-shadow:0 8px 30px #ffc83d55}
+.btn.claim:disabled{opacity:.45;box-shadow:none}
+.btn.claim.ready{animation:ripglow 1.6s ease-in-out infinite}
+.coinfall{position:fixed;z-index:80;pointer-events:none;top:-24px}
+@media (max-width:560px){ .earners{gap:10px} .earner .en{font-size:12px} }
+
+/* ---------- wheels ---------- */
+.wheels{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:22px;margin-top:10px}
+.wsec{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px 16px 22px;text-align:center}
+.wsec h2{margin:0 0 4px}
+.wone{max-width:560px;margin:10px auto 0}
+.wwrap{position:relative;width:min(460px,100%);aspect-ratio:1;margin:14px auto 0}
+.wwrap canvas{width:100%;height:100%;display:block;border-radius:50%;box-shadow:0 14px 40px #000a,0 0 0 6px #1b1f35,0 0 0 9px #ffd24d55}
+.wptr{position:absolute;left:50%;top:-6px;translate:-50% 0;width:0;height:0;z-index:2;
+  border-left:16px solid transparent;border-right:16px solid transparent;border-top:30px solid #ffd24d;filter:drop-shadow(0 3px 3px #000a)}
+.whub{position:absolute;left:50%;top:50%;translate:-50% -50%;width:17%;aspect-ratio:1;border-radius:50%;z-index:2;border:4px solid #111;
+  background:linear-gradient(#e53935 0 46%,#111 46% 54%,#fff 54%);box-shadow:0 4px 12px #000a}
+.whub::after{content:"";position:absolute;inset:33%;border-radius:50%;background:#fff;border:3px solid #111}
+.wnow{min-height:30px;margin-top:12px;font-weight:900;font-size:20px;color:#ffe14d}
+.btn.wspin{margin-top:12px;background:linear-gradient(135deg,#8a5cff,#ff5fd2);border:0;color:#fff;font-size:19px;font-weight:900;padding:12px 38px;box-shadow:0 8px 26px #8a5cff55}
+.btn.wspin:disabled{opacity:.45;box-shadow:none}
+.wres{margin-top:16px;min-height:10px}
+.wres .pop{animation:wpop .6s cubic-bezier(.2,1.4,.4,1)}
+@keyframes wpop{from{opacity:0;transform:scale(.4)}}
+.wres img{width:min(220px,60%);aspect-ratio:1;object-fit:contain;filter:drop-shadow(0 10px 20px #000a)}
+.wres .wn{font-size:28px;font-weight:900}
+.wres .wno{color:var(--dim);font-weight:700}
+.wpacks{margin-top:22px;text-align:left}
+.wpacks h3{margin:0 0 4px;font-size:19px}
+.wprow{display:flex;gap:14px;align-items:flex-start;background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:10px}
+.wpk{flex:none;width:62px;aspect-ratio:553/1000;border-radius:3px;background:#15182a center/100% 100% no-repeat;box-shadow:0 6px 14px #0008}
+.wpk.logo{background-size:90% auto;background-color:#232845}
+.wpinfo{flex:none;width:140px;font-size:13px;color:var(--dim)}
+.wpinfo b{display:block;color:var(--text);font-size:15px;line-height:1.2;margin-bottom:2px}
+.wpinfo .btn{margin-top:8px;padding:5px 12px;font-size:13px}
+.wpcards{flex:1;min-width:0;display:flex;gap:8px;overflow-x:auto;padding-bottom:6px}
+.wpcards button{flex:none;background:none;border:0;padding:0;width:88px;text-align:center}
+.wpcards img{width:88px;aspect-ratio:63/88;border-radius:5%/3.6%;display:block;box-shadow:0 4px 10px #0008}
+.wpcards span{font-size:11px;color:var(--dim);display:block;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:560px){ .wprow{flex-wrap:wrap} .wpinfo{width:auto;flex:1} .wpcards{flex-basis:100%} }
+.wres .wbig{font-size:72px;font-weight:900;line-height:1;background:linear-gradient(90deg,#ffd24d,#fff6c2,#ffc83d);
+  -webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 4px 0 #0008)}
+
+/* ---------- collection ---------- */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:10px 0 6px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px}
+.stat .v{font-size:26px;font-weight:900}
+.stat .k{color:var(--dim);font-size:13px}
+.setrows{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+.setrow{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--radius);padding:10px 14px;text-align:left}
+.setrow:hover{border-color:var(--dim)}
+.setrow img{width:70px;height:36px;object-fit:contain}
+.setrow .info{flex:1;min-width:0}
+.setrow .nm{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prog{height:7px;background:var(--bg2);border-radius:99px;margin-top:6px;overflow:hidden}
+.prog i{display:block;height:100%;background:linear-gradient(90deg,var(--red),var(--gold));border-radius:99px}
+.back{background:none;border:0;color:var(--dim);padding:0;margin-bottom:8px;font-weight:600}
+.back:hover{color:var(--text)}
+.head{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.head .lgbig{height:60px;max-width:200px;object-fit:contain}
+
+/* ---------- friends / feed ---------- */
+.people{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+.person{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;text-align:left}
+.person:hover{border-color:var(--dim)}
+.av{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:900;font-size:18px;flex:none}
+.person .info{flex:1;min-width:0}
+.person .nm{font-weight:800}
+.feed > div{min-width:0;display:flex;flex-direction:column}
+.feed .who{display:block;margin-left:0;font-size:13px;color:var(--dim);margin-top:4px;line-height:1.35}
+.feed .who a{color:var(--text);font-weight:700;text-decoration:none}
+
+/* ---------- modal ---------- */
+.modal{position:fixed;inset:0;z-index:50;background:#000b;display:flex;overflow:auto;padding:20px}
+.sheet{margin:auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px;width:min(380px,100%)}
+.sheet h3{margin:0 0 6px;font-size:22px}
+.sheet label{display:block;font-size:13px;color:var(--dim);margin:12px 0 4px}
+.sheet input{width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--text);outline:none}
+.sheet input:focus{border-color:var(--dim)}
+.err{color:#ff8a9c;font-size:14px;min-height:20px;margin-top:10px}
+.zoom{margin:auto;text-align:center;max-width:420px;width:100%}
+.zoom img{width:100%;border-radius:4.5%/3.2%;box-shadow:0 20px 60px #000}
+.zoom .meta{margin-top:12px;color:var(--dim)}
+.zoom .meta b{color:var(--text);font-size:18px}
+
+/* ---------- the opening stage (full screen, made to be recorded) ---------- */
+#stage{position:fixed;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 50% 42%,#2b2257,#0b0a18 62%,#040409);overflow:hidden;
+  user-select:none;-webkit-user-select:none;touch-action:none}
+#stage .blob{position:absolute;width:60vmax;height:60vmax;border-radius:50%;filter:blur(90px);opacity:.33;pointer-events:none}
+#stage .b1{background:#5b2bff;left:-22vmax;top:-26vmax;animation:drift 14s ease-in-out infinite alternate}
+#stage .b2{background:#ff2b7a;right:-26vmax;bottom:-32vmax;animation:drift 17s ease-in-out infinite alternate-reverse}
+@keyframes drift{to{transform:translate(12vmax,10vmax) scale(1.15)}}
+#fx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:6}
+#stage .top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:10px;padding:12px 16px;z-index:8}
+#stage .top .ttl{font-weight:800;color:var(--dim);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#stage .hint{position:absolute;bottom:max(22px,env(safe-area-inset-bottom));left:0;right:0;text-align:center;
+  color:var(--dim);font-weight:700;z-index:8;padding:0 16px}
+#stage .hint .btn{margin:6px}
+.swipe{display:inline-block;margin-right:10px;font-size:22px;animation:swipe 1.3s ease-in-out infinite}
+@keyframes swipe{0%,100%{transform:translateX(-16px) rotate(-10deg)}50%{transform:translateX(16px) rotate(10deg)}}
+.arena{position:relative;width:min(380px,78vw,calc(62vh * .716));aspect-ratio:63/88;--rx:0deg;--ry:0deg;--gx:50%;--gy:30%}
+#stage.quake .arena{animation:quake .55s}
+@keyframes quake{10%{transform:translate(-11px,6px) rotate(-1.2deg)}20%{transform:translate(10px,-8px) rotate(1deg)}
+  30%{transform:translate(-8px,-5px)}42%{transform:translate(7px,7px)}56%{transform:translate(-4px,3px)}72%{transform:translate(3px,-2px)}}
+
+/* the pack on the stage: tilts toward you, tears along the top */
+.arena .pack{position:absolute;left:5%;width:90%;top:50%;translate:0 -50%;z-index:2;border-radius:10px;
+  transform:perspective(900px) rotateX(var(--rx)) rotateY(var(--ry));transition:transform .15s,box-shadow .4s}
+.arena .pack .band b{font-size:19px}
+.arena .pack .band span{font-size:11px}
+/* the chosen pack's entrance (packIntro): it flies in spinning, lands with a burst, then floats */
+#stage.enter{animation:stagein .35s ease-out}
+@keyframes stagein{from{opacity:0}}
+.arena .pack.idle{animation:bob 2.6s ease-in-out infinite}
+@keyframes bob{50%{translate:0 calc(-50% - 10px)}}
+.ring{position:absolute;left:50%;top:50%;width:60%;aspect-ratio:1;translate:-50% -50%;border-radius:50%;pointer-events:none;z-index:4;
+  border:3px solid var(--rc,#fff);box-shadow:0 0 30px var(--rc,#fff),inset 0 0 30px var(--rc,#fff);animation:ring .9s ease-out forwards}
+@keyframes ring{from{transform:scale(.2);opacity:1}to{transform:scale(3.2);opacity:0}}
+#stage .hint.later{animation:hintin .5s .9s both}
+@keyframes hintin{from{opacity:0;transform:translateY(10px)}}
+/* the real pack photo (packArt) */
+.pack.real{aspect-ratio:553/1000;border-radius:4px;background-color:#15182a;background-size:100% 100%;background-repeat:no-repeat;
+  background-position:center}
+.pack.real .crimp{display:none}
+.pack.real .glare{opacity:.6}
+.pack.real .flap{box-shadow:0 2px 4px #0005}
+.arena .pack.real{left:12%;width:76%}
+.pack .flap{position:absolute;left:0;right:0;top:0;height:11%;z-index:3;background:inherit;background-size:100% 909%;
+  background-position:top;transform-origin:100% 100%;box-shadow:0 2px 6px #0006}
+.pack .flap .crimp{height:64%}
+.pack .cut{position:absolute;left:0;right:0;top:11%;height:4px;z-index:4;translate:0 -50%;transition:opacity .3s}
+.pack .cut::before{content:"";position:absolute;left:3%;right:3%;top:1px;border-top:2px dashed #ffffffb0;animation:blink 1.1s ease-in-out infinite}
+@keyframes blink{50%{opacity:.25}}
+.pack .cut i{position:absolute;left:0;top:0;height:100%;width:calc(var(--p,0) * 100%);background:#fff;border-radius:3px;
+  box-shadow:0 0 8px #fff,0 0 18px #ffd84d,0 0 34px #ff9a3d}
+.pack.torn .flap{animation:flapoff .75s cubic-bezier(.2,.7,.4,1) forwards}
+@keyframes flapoff{30%{transform:translate(8%,-60%) rotate(-10deg)}100%{transform:translate(70%,-420%) rotate(55deg);opacity:0}}
+.pack.torn .cut{opacity:0}
+.pack.glowing{box-shadow:0 -20px 70px 6px #ffe08acc,0 18px 40px #000a;animation:packbuzz .18s linear infinite}
+@keyframes packbuzz{50%{translate:1px calc(-50% - 1px)}}
+.pack.away,.arena .pack.away{animation:packaway .75s .1s ease-in forwards}
+@keyframes packaway{to{transform:translateY(125%) rotate(7deg);opacity:0}}
+.light{position:absolute;left:10%;right:10%;top:7%;height:40px;border-radius:50%;z-index:5;pointer-events:none;opacity:0;
+  background:radial-gradient(ellipse,#fff 0,#ffe08a 35%,transparent 70%);filter:blur(3px)}
+.light.on{animation:light 1.3s ease-out forwards}
+@keyframes light{0%{opacity:0;transform:scale(.4,.3)}18%{opacity:1;transform:scale(1.3,2.5)}100%{opacity:0;transform:scale(1.6,7) translateY(-10%)}}
+
+/* the cards: a stack that comes up out of the pack; swipe the top one away */
+.deck{position:absolute;inset:0;z-index:1}
+.dtilt{position:absolute;inset:0;transform-style:flat;transform:perspective(1100px) rotateX(var(--rx)) rotateY(var(--ry));transition:transform .35s ease-out}
+.deck.rise{animation:deckrise 1.15s cubic-bezier(.3,1.15,.4,1) forwards}
+@keyframes deckrise{0%{transform:translateY(22%) scale(.86)}45%{transform:translateY(-34%) scale(.95)}100%{transform:none}}
+.deck.up{z-index:3}
+/* the card back: dark blue border, blue vortex, tilted Poke Ball, yellow "Pokemon" word (an SVG
+   drawn for this site - see cardback.py notes in CLAUDE.md) */
+.cardback{border-radius:4.5%/3.2%;box-shadow:inset 0 0 0 1px #0006;background:#1a2a7a url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 630 880%22%3E %3Cdefs%3E %3CradialGradient id=%22bg%22 cx=%2250%25%22 cy=%2253%25%22 r=%2270%25%22%3E %3Cstop offset=%220%22 stop-color=%22%237fb5ff%22/%3E%3Cstop offset=%22.35%22 stop-color=%22%233f7ae8%22/%3E %3Cstop offset=%22.75%22 stop-color=%22%231f4bc0%22/%3E%3Cstop offset=%221%22 stop-color=%22%2315318f%22/%3E %3C/radialGradient%3E %3ClinearGradient id=%22red%22 x1=%220%22 y1=%220%22 x2=%220%22 y2=%221%22%3E %3Cstop offset=%220%22 stop-color=%22%23ff6a55%22/%3E%3Cstop offset=%22.6%22 stop-color=%22%23e4222b%22/%3E%3Cstop offset=%221%22 stop-color=%22%23a50f18%22/%3E %3C/linearGradient%3E %3ClinearGradient id=%22white%22 x1=%220%22 y1=%220%22 x2=%220%22 y2=%221%22%3E %3Cstop offset=%220%22 stop-color=%22%23ffffff%22/%3E%3Cstop offset=%221%22 stop-color=%22%23c9ced8%22/%3E %3C/linearGradient%3E %3CradialGradient id=%22shine%22 cx=%2235%25%22 cy=%2225%25%22 r=%2245%25%22%3E %3Cstop offset=%220%22 stop-color=%22%23fff%22 stop-opacity=%22.75%22/%3E%3Cstop offset=%221%22 stop-color=%22%23fff%22 stop-opacity=%220%22/%3E %3C/radialGradient%3E %3CclipPath id=%22inner%22%3E%3Crect x=%2230%22 y=%2230%22 width=%22570%22 height=%22820%22 rx=%2220%22/%3E%3C/clipPath%3E %3CclipPath id=%22ball%22%3E%3Ccircle cx=%220%22 cy=%220%22 r=%22150%22/%3E%3C/clipPath%3E %3C/defs%3E %3Crect width=%22630%22 height=%22880%22 rx=%2234%22 fill=%22%231a2a7a%22/%3E %3Crect x=%2214%22 y=%2214%22 width=%22602%22 height=%22852%22 rx=%2228%22 fill=%22%2323379a%22/%3E %3Cg clip-path=%22url(%23inner)%22%3E %3Crect x=%2230%22 y=%2230%22 width=%22570%22 height=%22820%22 fill=%22url(%23bg)%22/%3E %3Cpath d=%22M345.0 470.0 L359.7 473.3 L374.1 478.8 L387.7 486.5 L400.5 496.2 L412.2 507.9 L422.5 521.4 L431.3 536.6 L438.3 553.3 L443.5 571.5 L446.5 590.8 L447.4 611.0 L445.9 632.0 L441.9 653.5 L435.5 675.3 L426.5 697.0 L414.9 718.4 L400.6 739.3 L383.9 759.3 L364.6 778.3 L342.8 796.0 L318.7 812.0 L292.4 826.1 L263.9 838.2 L233.6 847.9 L201.6 855.1 L168.1 859.5 L133.3 861.0 L97.6 859.4 L61.1 854.6 L24.2 846.5 L-12.9 834.9 L-49.8 819.8 L-86.2 801.2 L-121.8 779.1 L-156.3 753.5%22 fill=%22none%22 stroke=%22%230e2a8a%22 stroke-width=%2214%22 stroke-linecap=%22round%22 opacity=%22.35%22/%3E%3Cpath d=%22M342.0 483.0 L353.9 492.4 L364.4 503.6 L373.4 516.4 L380.7 530.7 L386.1 546.3 L389.6 562.9 L390.9 580.4 L390.0 598.6 L386.7 617.2 L381.1 635.9 L373.1 654.5 L362.6 672.8 L349.7 690.4 L334.5 707.2 L316.9 722.8 L297.2 737.1 L275.3 749.8 L251.5 760.6 L225.9 769.3 L198.6 775.7 L169.9 779.7 L140.1 781.0 L109.3 779.6 L77.7 775.2 L45.8 767.8 L13.7 757.2 L-18.3 743.5 L-49.8 726.5 L-80.6 706.4 L-110.4 683.0 L-138.7 656.5 L-165.5 626.9 L-190.2 594.4 L-212.7 559.0 L-232.6 521.0%22 fill=%22none%22 stroke=%22%238fc0ff%22 stroke-width=%2226%22 stroke-linecap=%22round%22 opacity=%22.22%22/%3E%3Cpath d=%22M333.7 493.5 L340.3 507.0 L344.9 521.7 L347.5 537.1 L347.8 553.2 L346.0 569.6 L341.9 586.1 L335.4 602.4 L326.7 618.4 L315.8 633.7 L302.6 648.1 L287.3 661.4 L269.9 673.3 L250.7 683.7 L229.6 692.2 L207.0 698.7 L183.1 702.9 L157.9 704.9 L131.7 704.2 L104.8 701.0 L77.5 695.0 L49.9 686.1 L22.4 674.3 L-4.7 659.7 L-31.2 642.0 L-56.8 621.4 L-81.1 598.0 L-104.0 571.8 L-125.0 542.8 L-144.0 511.3 L-160.7 477.3 L-174.7 441.1 L-186.0 402.9 L-194.1 362.8 L-199.0 321.2 L-200.5 278.3%22 fill=%22none%22 stroke=%22%230e2a8a%22 stroke-width=%2214%22 stroke-linecap=%22round%22 opacity=%22.35%22/%3E%3Cpath d=%22M321.7 499.2 L321.7 514.4 L319.5 529.5 L315.1 544.6 L308.5 559.2 L299.7 573.2 L288.8 586.2 L276.0 598.2 L261.2 608.8 L244.7 617.8 L226.5 625.1 L206.9 630.4 L186.1 633.6 L164.3 634.6 L141.7 633.1 L118.5 629.2 L95.1 622.6 L71.5 613.4 L48.2 601.5 L25.4 586.9 L3.4 569.6 L-17.6 549.7 L-37.2 527.2 L-55.3 502.2 L-71.5 474.8 L-85.7 445.1 L-97.4 413.5 L-106.6 379.9 L-113.0 344.7 L-116.5 308.0 L-116.7 270.2 L-113.7 231.5 L-107.2 192.2 L-97.2 152.6 L-83.6 112.9 L-66.3 73.6%22 fill=%22none%22 stroke=%22%238fc0ff%22 stroke-width=%2226%22 stroke-linecap=%22round%22 opacity=%22.22%22/%3E%3Cpath d=%22M308.3 499.2 L301.8 512.9 L293.2 525.6 L282.7 537.2 L270.4 547.5 L256.5 556.3 L241.0 563.4 L224.2 568.6 L206.3 571.7 L187.5 572.7 L168.0 571.4 L148.0 567.7 L127.9 561.5 L107.8 552.9 L88.1 541.8 L68.9 528.2 L50.6 512.1 L33.4 493.6 L17.6 472.8 L3.4 449.7 L-9.0 424.6 L-19.2 397.5 L-27.2 368.7 L-32.6 338.3 L-35.3 306.6 L-35.2 273.8 L-32.1 240.1 L-25.8 205.9 L-16.3 171.4 L-3.5 136.9 L12.7 102.7 L32.2 69.1 L55.1 36.5 L81.3 5.1 L110.8 -24.7 L143.5 -52.6%22 fill=%22none%22 stroke=%22%230e2a8a%22 stroke-width=%2214%22 stroke-linecap=%22round%22 opacity=%22.35%22/%3E%3Cpath d=%22M296.3 493.5 L284.5 502.9 L271.3 510.7 L256.8 516.6 L241.2 520.5 L224.8 522.4 L207.8 522.0 L190.4 519.4 L172.9 514.5 L155.6 507.2 L138.6 497.5 L122.2 485.5 L106.7 471.3 L92.4 454.8 L79.4 436.2 L68.1 415.6 L58.5 393.2 L51.1 369.1 L45.8 343.4 L43.0 316.5 L42.8 288.5 L45.3 259.7 L50.7 230.2 L59.0 200.5 L70.3 170.8 L84.6 141.3 L102.1 112.3 L122.6 84.2 L146.1 57.2 L172.6 31.7 L202.0 7.9 L234.2 -13.9 L268.9 -33.3 L306.2 -50.2 L345.7 -64.3 L387.2 -75.2%22 fill=%22none%22 stroke=%22%238fc0ff%22 stroke-width=%2226%22 stroke-linecap=%22round%22 opacity=%22.22%22/%3E%3Cpath d=%22M288.0 483.0 L273.3 486.4 L258.0 487.7 L242.3 486.7 L226.6 483.5 L211.0 478.1 L195.9 470.4 L181.3 460.5 L167.7 448.4 L155.2 434.3 L144.1 418.2 L134.5 400.4 L126.8 380.8 L121.0 359.7 L117.4 337.3 L116.1 313.9 L117.3 289.5 L121.0 264.5 L127.4 239.2 L136.6 213.7 L148.5 188.4 L163.3 163.5 L180.9 139.3 L201.2 116.1 L224.3 94.2 L250.1 73.9 L278.3 55.3 L309.0 38.9 L341.9 24.8 L376.9 13.3 L413.7 4.6 L452.1 -1.0 L491.9 -3.5 L532.8 -2.5 L574.4 1.9 L616.6 10.1%22 fill=%22none%22 stroke=%22%230e2a8a%22 stroke-width=%2214%22 stroke-linecap=%22round%22 opacity=%22.35%22/%3E%3Cpath d=%22M285.0 470.0 L270.3 466.7 L255.9 461.2 L242.3 453.5 L229.5 443.8 L217.8 432.1 L207.5 418.6 L198.7 403.4 L191.7 386.7 L186.5 368.5 L183.5 349.2 L182.6 329.0 L184.1 308.0 L188.1 286.5 L194.5 264.7 L203.5 243.0 L215.1 221.6 L229.4 200.7 L246.1 180.7 L265.4 161.7 L287.2 144.0 L311.3 128.0 L337.6 113.9 L366.1 101.8 L396.4 92.1 L428.4 84.9 L461.9 80.5 L496.7 79.0 L532.4 80.6 L568.9 85.4 L605.8 93.5 L642.9 105.1 L679.8 120.2 L716.2 138.8 L751.8 160.9 L786.3 186.5%22 fill=%22none%22 stroke=%22%238fc0ff%22 stroke-width=%2226%22 stroke-linecap=%22round%22 opacity=%22.22%22/%3E%3Cpath d=%22M288.0 457.0 L276.1 447.6 L265.6 436.4 L256.6 423.6 L249.3 409.3 L243.9 393.7 L240.4 377.1 L239.1 359.6 L240.0 341.4 L243.3 322.8 L248.9 304.1 L256.9 285.5 L267.4 267.2 L280.3 249.6 L295.5 232.8 L313.1 217.2 L332.8 202.9 L354.7 190.2 L378.5 179.4 L404.1 170.7 L431.4 164.3 L460.1 160.3 L489.9 159.0 L520.7 160.4 L552.3 164.8 L584.2 172.2 L616.3 182.8 L648.3 196.5 L679.8 213.5 L710.6 233.6 L740.4 257.0 L768.7 283.5 L795.5 313.1 L820.2 345.6 L842.7 381.0 L862.6 419.0%22 fill=%22none%22 stroke=%22%230e2a8a%22 stroke-width=%2214%22 stroke-linecap=%22round%22 opacity=%22.35%22/%3E%3Cpath d=%22M296.3 446.5 L289.7 433.0 L285.1 418.3 L282.5 402.9 L282.2 386.8 L284.0 370.4 L288.1 353.9 L294.6 337.6 L303.3 321.6 L314.2 306.3 L327.4 291.9 L342.7 278.6 L360.1 266.7 L379.3 256.3 L400.4 247.8 L423.0 241.3 L446.9 237.1 L472.1 235.1 L498.3 235.8 L525.2 239.0 L552.5 245.0 L580.1 253.9 L607.6 265.7 L634.7 280.3 L661.2 298.0 L686.8 318.6 L711.1 342.0 L734.0 368.2 L755.0 397.2 L774.0 428.7 L790.7 462.7 L804.7 498.9 L816.0 537.1 L824.1 577.2 L829.0 618.8 L830.5 661.7%22 fill=%22none%22 stroke=%22%238fc0ff%22 stroke-width=%2226%22 stroke-linecap=%22round%22 opacity=%22.22%22/%3E%3Cpath d=%22M308.3 440.8 L308.3 425.6 L310.5 410.5 L314.9 395.4 L321.5 380.8 L330.3 366.8 L341.2 353.8 L354.0 341.8 L368.8 331.2 L385.3 322.2 L403.5 314.9 L423.1 309.6 L443.9 306.4 L465.7 305.4 L488.3 306.9 L511.5 310.8 L534.9 317.4 L558.5 326.6 L581.8 338.5 L604.6 353.1 L626.6 370.4 L647.6 390.3 L667.2 412.8 L685.3 437.8 L701.5 465.2 L715.7 494.9 L727.4 526.5 L736.6 560.1 L743.0 595.3 L746.5 632.0 L746.7 669.8 L743.7 708.5 L737.2 747.8 L727.2 787.4 L713.6 827.1 L696.3 866.4%22 fill=%22none%22 stroke=%22%230e2a8a%22 stroke-width=%2214%22 stroke-linecap=%22round%22 opacity=%22.35%22/%3E%3Cpath d=%22M321.7 440.8 L328.2 427.1 L336.8 414.4 L347.3 402.8 L359.6 392.5 L373.5 383.7 L389.0 376.6 L405.8 371.4 L423.7 368.3 L442.5 367.3 L462.0 368.6 L482.0 372.3 L502.1 378.5 L522.2 387.1 L541.9 398.2 L561.1 411.8 L579.4 427.9 L596.6 446.4 L612.4 467.2 L626.6 490.3 L639.0 515.4 L649.2 542.5 L657.2 571.3 L662.6 601.7 L665.3 633.4 L665.2 666.2 L662.1 699.9 L655.8 734.1 L646.3 768.6 L633.5 803.1 L617.3 837.3 L597.8 870.9 L574.9 903.5 L548.7 934.9 L519.2 964.7 L486.5 992.6%22 fill=%22none%22 stroke=%22%238fc0ff%22 stroke-width=%2226%22 stroke-linecap=%22round%22 opacity=%22.22%22/%3E%3Cpath d=%22M333.7 446.5 L345.5 437.1 L358.7 429.3 L373.2 423.4 L388.8 419.5 L405.2 417.6 L422.2 418.0 L439.6 420.6 L457.1 425.5 L474.4 432.8 L491.4 442.5 L507.8 454.5 L523.3 468.7 L537.6 485.2 L550.6 503.8 L561.9 524.4 L571.5 546.8 L578.9 570.9 L584.2 596.6 L587.0 623.5 L587.2 651.5 L584.7 680.3 L579.3 709.8 L571.0 739.5 L559.7 769.2 L545.4 798.7 L527.9 827.7 L507.4 855.8 L483.9 882.8 L457.4 908.3 L428.0 932.1 L395.8 953.9 L361.1 973.3 L323.8 990.2 L284.3 1004.3 L242.8 1015.2%22 fill=%22none%22 stroke=%22%230e2a8a%22 stroke-width=%2214%22 stroke-linecap=%22round%22 opacity=%22.35%22/%3E%3Cpath d=%22M342.0 457.0 L356.7 453.6 L372.0 452.3 L387.7 453.3 L403.4 456.5 L419.0 461.9 L434.1 469.6 L448.7 479.5 L462.3 491.6 L474.8 505.7 L485.9 521.8 L495.5 539.6 L503.2 559.2 L509.0 580.3 L512.6 602.7 L513.9 626.1 L512.7 650.5 L509.0 675.5 L502.6 700.8 L493.4 726.3 L481.5 751.6 L466.7 776.5 L449.1 800.7 L428.8 823.9 L405.7 845.8 L379.9 866.1 L351.7 884.7 L321.0 901.1 L288.1 915.2 L253.1 926.7 L216.3 935.4 L177.9 941.0 L138.1 943.5 L97.2 942.5 L55.6 938.1 L13.4 929.9%22 fill=%22none%22 stroke=%22%238fc0ff%22 stroke-width=%2226%22 stroke-linecap=%22round%22 opacity=%22.22%22/%3E %3Ccircle cx=%22315%22 cy=%22470%22 r=%22230%22 fill=%22%239cc7ff%22 opacity=%22.18%22/%3E %3C/g%3E %3Crect x=%2230%22 y=%2230%22 width=%22570%22 height=%22820%22 rx=%2220%22 fill=%22none%22 stroke=%22%230f1f66%22 stroke-width=%226%22/%3E %3Cg transform=%22translate(315 510) rotate(-22)%22%3E %3Ccircle r=%22158%22 fill=%22%23111%22/%3E %3Cg clip-path=%22url(%23ball)%22%3E %3Crect x=%22-160%22 y=%22-160%22 width=%22320%22 height=%22160%22 fill=%22url(%23red)%22/%3E %3Crect x=%22-160%22 y=%220%22 width=%22320%22 height=%22160%22 fill=%22url(%23white)%22/%3E %3Crect x=%22-160%22 y=%22-13%22 width=%22320%22 height=%2226%22 fill=%22%23111%22/%3E %3Ccircle r=%22150%22 fill=%22url(%23shine)%22/%3E %3C/g%3E %3Ccircle r=%2246%22 fill=%22%23111%22/%3E %3Ccircle r=%2233%22 fill=%22url(%23white)%22/%3E %3Ccircle r=%2219%22 fill=%22none%22 stroke=%22%239aa0ad%22 stroke-width=%223%22/%3E %3C/g%3E %3Cg transform=%22translate(315 250) rotate(-22)%22%3E %3Ctext x=%220%22 y=%220%22 text-anchor=%22middle%22 font-family=%22Arial Black,Arial,sans-serif%22 font-weight=%22900%22 font-size=%22104%22 fill=%22%23ffcb05%22 stroke=%22%232a5ab0%22 stroke-width=%2215%22 stroke-linejoin=%22round%22 paint-order=%22stroke%22%3EPok%26%23233%3Bmon%3C/text%3E %3C/g%3E %3C/svg%3E") center/100% 100% no-repeat}
+.deck .back{position:absolute;inset:0;margin:0;transform:translate(calc(var(--k) * 3px),calc(var(--k) * 6px)) rotate(calc(var(--k) * 1.3deg));box-shadow:0 12px 30px #000a}
+.deck .under{border-radius:4.5%/3.2%;overflow:hidden}
+.deck .under img{width:100%;height:100%;display:block;object-fit:cover;pointer-events:none}
+.big{position:absolute;inset:0;perspective:1100px;z-index:3;cursor:grab;touch-action:none}  /* its own 3D space: a flipping card can't swing into the cards under it (.dtilt is flat) */
+.big.held{cursor:grabbing}
+.big.in{animation:cardin .3s ease-out}
+@keyframes cardin{from{transform:translate(3px,6px) rotate(1.3deg)}}
+.big .shk,.big .tilt,.big .inner{position:absolute;inset:0;transform-style:preserve-3d}
+.big .inner{transition:none}
+.big.down .inner{transform:rotateY(180deg)}
+.big.down .shk{animation:tremble .11s linear infinite}
+@keyframes tremble{25%{transform:translate(-1.5px,1px)}75%{transform:translate(1.5px,-1px)}}
+.big .face,.big .bk{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:4.5%/3.2%;overflow:hidden;box-shadow:0 20px 50px #000b}
+.big .face img{width:100%;height:100%;display:block;object-fit:cover;pointer-events:none}
+.big .bk{position:absolute;transform:rotateY(180deg)}
+.big.down .bk{animation:aura .7s ease-in-out infinite alternate}
+@keyframes aura{from{box-shadow:0 0 18px 3px var(--rc)}to{box-shadow:0 0 70px 22px var(--rc)}}
+.big.hit:not(.down) .face{box-shadow:0 0 40px 10px var(--rc),0 20px 50px #000b}
+.big.g7:not(.down) .face{animation:rainbow 1.6s linear infinite}
+@keyframes rainbow{0%,100%{box-shadow:0 0 60px 14px #ff5f5f}25%{box-shadow:0 0 60px 14px #ffd24d}50%{box-shadow:0 0 60px 14px #5fffb0}75%{box-shadow:0 0 60px 14px #7f9fff}}
+.rays{position:absolute;left:50%;top:50%;width:270%;aspect-ratio:1;translate:-50% -50%;border-radius:50%;pointer-events:none;z-index:0;
+  background:repeating-conic-gradient(from 0deg,var(--rc,#fff) 0deg 5deg,transparent 5deg 15deg);
+  -webkit-mask:radial-gradient(circle,#000 0,transparent 62%);mask:radial-gradient(circle,#000 0,transparent 62%);
+  opacity:0;transition:opacity .5s,scale .7s;animation:spin 20s linear infinite}
+.rays.on{opacity:.22}
+.rays.boom{opacity:.75;scale:1.25}
+.rays.g7{animation:spin 20s linear infinite,hue 2.5s linear infinite}
+@keyframes hue{to{filter:hue-rotate(360deg)}}
+.tag{position:absolute;left:50%;bottom:calc(100% + 12px);translate:-50% 0;display:flex;gap:6px;white-space:nowrap;z-index:5;transition:opacity .25s,transform .3s}
+.tag.off{opacity:0;transform:translateY(8px)}
+.tag span{background:#000b;border-radius:999px;padding:5px 12px;font-weight:800;font-size:15px}
+.tag .n{background:var(--gold);color:#221}
+.count{position:absolute;top:calc(100% + 16px);left:0;right:0;text-align:center;color:var(--dim);font-weight:700;font-size:14px}
+.rname{position:absolute;top:12%;left:0;right:0;text-align:center;font-weight:900;font-style:italic;letter-spacing:1px;
+  font-size:clamp(26px,6vw,56px);color:#fff;opacity:0;z-index:7;pointer-events:none;padding:0 12px;
+  text-shadow:0 0 24px var(--rc),0 0 50px var(--rc),0 5px 0 #0009}
+.rname.pop{animation:rpop 2.6s cubic-bezier(.2,1.4,.4,1) forwards}
+.rname.godpack{font-size:clamp(40px,11vw,96px);top:30%;filter:drop-shadow(0 0 2px #000) drop-shadow(0 0 4px #000) drop-shadow(0 6px 0 #000c) drop-shadow(0 0 26px #c58bff) !important;animation:rgod 3.2s cubic-bezier(.2,1.4,.4,1) forwards}
+@keyframes rgod{0%{opacity:0;transform:scale(.2) rotate(-12deg)}10%{opacity:1;transform:scale(1.3) rotate(-4deg)}20%{transform:scale(1) rotate(-4deg)}
+  35%{transform:scale(1.08) rotate(-4deg)}50%{transform:scale(1) rotate(-4deg)}85%{opacity:1}100%{opacity:0;transform:scale(1) rotate(-4deg) translateY(-20px)}}
+.godtag{font-weight:900;font-style:italic;font-size:26px;letter-spacing:1px;margin-bottom:4px;
+  background:linear-gradient(90deg,#ff5f5f,#ffd24d,#5fffb0,#5fc8ff,#c58bff,#ff5f5f);-webkit-background-clip:text;background-clip:text;color:transparent}
+.rname.g7{background:linear-gradient(90deg,#ff5f5f,#ffd24d,#5fffb0,#5fc8ff,#c58bff,#ff5f5f);background-size:200% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none;filter:drop-shadow(0 0 18px #c58bff) drop-shadow(0 4px 0 #0009)}
+@keyframes rpop{0%{opacity:0;transform:scale(.3) rotate(-8deg)}12%{opacity:1;transform:scale(1.18) rotate(-3deg)}22%{transform:scale(1) rotate(-3deg)}
+  80%{opacity:1;transform:scale(1.02) rotate(-3deg)}100%{opacity:0;transform:scale(1.02) rotate(-3deg) translateY(-14px)}}
+.flash{position:absolute;inset:0;background:radial-gradient(circle,#fff,#fff0 75%);pointer-events:none;animation:flash .8s forwards;z-index:7}
+@keyframes flash{from{opacity:.95}to{opacity:0}}
+.summary{position:relative;z-index:5;width:min(900px,94vw);max-height:76vh;overflow:auto;text-align:center;padding:40px 4px 10px;touch-action:pan-y}
+.summary .cards{grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.summary .card{animation:deal .55s cubic-bezier(.2,1.3,.4,1) both}
+@keyframes deal{from{opacity:0;transform:translateY(80px) rotate(-10deg) scale(.6)}}
+.summary .tot{font-size:40px;font-weight:900;margin:4px 0 14px}
+.summary .tot small{display:block;font-size:14px;color:var(--dim);font-weight:600}
+@media (max-width:560px){
+  .bar{gap:8px 10px;padding:8px 16px}
+  nav{order:3;width:100%;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  nav a{white-space:nowrap;padding:7px 11px;font-size:14px}
+  #whoName{display:none}
+  .summary .cards{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .logo{font-size:22px}
+  .shelf{--pw:64vw}
+  .arrow{display:none}
+  .pname{font-size:22px}
+  .cards{grid-template-columns:repeat(auto-fill,minmax(105px,1fr))}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <a class="logo" href="#open"><span class="mini"></span>PACK <b>RIP</b></a>
+    <nav>
+      <a href="#open" data-tab="open">Open packs</a>
+      <a href="#collection" data-tab="collection">My collection</a>
+      <a href="#friends" data-tab="friends">Friends</a>
+      <a href="#earn" data-tab="earn">Earn</a>
+      <a href="#wheel" data-tab="wheel">Pokémon Wheel</a>
+      <a href="#numbers" data-tab="numbers">Number Wheel</a>
+      <a href="#pulls" data-tab="pulls">Big pulls</a>
+    </nav>
+    <div class="who">
+      <span class="dot" id="dot" title="Server"></span>
+      <button class="iconbtn" id="mute" title="Sound on/off" onclick="toggleMute()">🔊</button>
+      <a class="buxchip hide" id="buxchip" href="#earn" title="PokéBux - your best Pokémon earn more on the Earn page"><span class="coin">P</span><span id="buxn">0</span></a>
+      <span id="whoName" class="note"></span>
+      <button class="btn small" id="signBtn" onclick="showSignIn()">Sign in</button>
+    </div>
+  </div>
+</header>
+<main id="main"><div class="spin"></div></main>
+
+<div id="stage" class="hide"></div>
+<div id="modal" class="modal hide" onclick="if(event.target===this)closeModal()"></div>
+
+<script>
+/* =================================================================================
+   PACK RIP - open every Pokémon pack and keep what you pull.
+   The server (PackRipServer/server.py, on Archer's PC behind a Cloudflare tunnel) opens
+   the packs and saves collections, so they follow you to any device and friends can see them.
+   ================================================================================= */
+let SERVER = null, ONLINE = false;
+let SETS = [], SETMAP = {};
+const SETCARDS = {};           // set id -> cards (from the server's cache)
+let ME = null;                 // signed-in player: {name, packs, cards:{id:n}, friends, recent, best}
+let TOKEN = store("prToken");
+let MUTED = store("prMute") === "1";
+let packFilter = {q: "", series: ""};
+
+function store(k, v){
+  try{ if(v === undefined) return localStorage.getItem(k);
+       if(v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); }catch(e){}
+  return null;
+}
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const money = v => v == null ? "—" : "$" + (v >= 1000 ? Math.round(v).toLocaleString() : v.toFixed(2));
+// A price for show. Estimates (the server marks them with "e") get a "~" and gold, never green.
+const priceHTML = c => c.p == null ? '<span class="price">—</span>'
+  : '<span class="price' + (c.e ? ' est" title="Estimated price' : '') + '">' + (c.e ? "~" : "") + money(c.p) + '</span>';
+const EST_WHY = {
+  set: "Estimated from TCGplayer market prices of other {r} cards in this set — TCGplayer has no market price for this one yet.",
+  rarity: "Estimated from what {r} cards from recent sets sell for on TCGplayer — no TCGplayer market price for this one yet.",
+  tier: "Estimated from TCGplayer market prices of cards just as rare as a {r} in recent sets — no TCGplayer market price for this one yet.",
+  any: "A rough estimate from a typical TCGplayer market price — no TCGplayer market price for this one yet."
+};
+const FOIL_NAME = {pokeball: "Poké Ball reverse holo", masterball: "Master Ball reverse holo"};
+const rhName = c => c.rh ? " · " + (FOIL_NAME[c.rv] || "reverse holo") : "";
+// Bonus mini-sets that were never sold as packs of their own - their cards come in the main set's
+// packs, so the collection and binders file them under that set (server: SUBSET_OF).
+const PARENT = {me55c: "me55", cel25c: "cel25", swsh9tg: "swsh9", swsh10tg: "swsh10", swsh11tg: "swsh11",
+  swsh12tg: "swsh12", swsh12pt5gg: "swsh12pt5", swsh45sv: "swsh45", sma: "sm115"};
+const BONUS = Object.fromEntries(Object.entries(PARENT).map(([k, v]) => [v, k]));
+const packSetOf = id => PARENT[setOf(id)] || setOf(id);
+const setOf = id => id.slice(0, id.lastIndexOf("-"));
+const hueOf = s => { let h = 7; for(const ch of s) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return Math.round((h % 1000) * 137.5) % 360; };
+function ago(t){
+  const s = Date.now()/1000 - t;
+  if(s < 60) return "just now";
+  if(s < 3600) return Math.floor(s/60) + "m ago";
+  if(s < 86400) return Math.floor(s/3600) + "h ago";
+  return Math.floor(s/86400) + "d ago";
+}
+
+/* ---------------- finding and talking to the server ---------------- */
+async function findServer(){
+  const param = new URLSearchParams(location.search).get("server");
+  if(param) return param.replace(/\/$/, "");
+  // On GitHub Pages: read server.json through the GitHub API - it's never stale, unlike the
+  // Pages copy, and the tunnel address changes every time Archer's PC restarts.
+  if(location.hostname.endsWith("github.io")){
+    const owner = location.hostname.split(".")[0], repo = location.pathname.split("/")[1];
+    try{
+      const r = await fetch("https://api.github.com/repos/" + owner + "/" + repo + "/contents/server.json", {cache:"no-store"});
+      if(r.ok){ const j = await r.json(); return JSON.parse(atob(j.content.replace(/\s/g,""))).url.replace(/\/$/, ""); }
+    }catch(e){}
+    try{
+      const r = await fetch("server.json?t=" + Date.now(), {cache:"no-store"});
+      if(r.ok) return (await r.json()).url.replace(/\/$/, "");
+    }catch(e){}
+  }
+  return "http://127.0.0.1:24710";
+}
+
+async function api(path, body){
+  const opts = {method: body ? "POST" : "GET", headers: {}};
+  if(body){ opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
+  if(TOKEN) opts.headers["Authorization"] = "Bearer " + TOKEN;
+  let r;
+  try{ r = await fetch(SERVER + path, opts); }
+  catch(e){ setOnline(false); throw new Error("The Pack Rip servers can't be reached right now. Try again in a bit!"); }
+  setOnline(true);
+  let j = {};
+  try{ j = await r.json(); }catch(e){}
+  if(r.status === 401 && path !== "/login" && path !== "/signup"){ signedOut(); }
+  if(!r.ok) throw new Error(j.error || "Something went wrong (" + r.status + ").");
+  return j;
+}
+function setOnline(ok){
+  ONLINE = ok;
+  $("dot").className = "dot " + (ok ? "ok" : "bad");
+  $("dot").title = ok ? "Server online" : "Server offline";
+}
+
+async function setCards(id){
+  if(!SETCARDS[id]) SETCARDS[id] = (await api("/set/" + encodeURIComponent(id))).cards;
+  return SETCARDS[id];
+}
+const cardIndex = {};
+async function loadSetsFor(ids){
+  const need = [...new Set(ids.map(setOf))].filter(s => SETMAP[s]);
+  // a few at a time - the server answers from its cache, but no need to flood it
+  for(let i = 0; i < need.length; i += 6){
+    await Promise.all(need.slice(i, i+6).map(s => setCards(s).then(cs => cs.forEach(c => cardIndex[c.id] = c)).catch(() => {})));
+  }
+}
+
+/* ---------------- accounts ---------------- */
+function showSignIn(mode){
+  mode = mode || "login";
+  const isNew = mode === "signup";
+  $("modal").innerHTML = '<div class="sheet"><h3>' + (isNew ? "Make an account" : "Sign in") + '</h3>'
+    + '<p class="note" style="margin:0">Your collection saves online, so it follows you to any device and your friends can see it.</p>'
+    + '<form onsubmit="event.preventDefault();doSign(\'' + mode + '\')">'
+    + '<label>Name</label><input id="sname" maxlength="16" autocomplete="username" placeholder="3-16 letters or numbers">'
+    + (isNew ? '<div class="note" style="margin-top:4px">Everyone can see this name, so don\'t use your real one.</div>' : '')
+    + '<label>Password</label><input id="spw" type="password" maxlength="64" autocomplete="' + (isNew ? "new-password" : "current-password") + '">'
+    + (isNew ? '<label>Password again</label><input id="spw2" type="password" maxlength="64" autocomplete="new-password">' : '')
+    + '<div class="err" id="serr"></div>'
+    + '<button class="btn main" style="width:100%;margin-top:6px">' + (isNew ? "Make my account" : "Sign in") + '</button></form>'
+    + '<p class="note" style="text-align:center;margin:14px 0 0">'
+    + (isNew ? 'Have an account? <a href="#" onclick="showSignIn(\'login\');return false">Sign in</a>'
+             : 'New here? <a href="#" onclick="showSignIn(\'signup\');return false">Make an account</a>') + '</p></div>';
+  $("modal").classList.remove("hide");
+  setTimeout(() => $("sname").focus(), 30);
+}
+async function doSign(mode){
+  const name = $("sname").value.trim(), pw = $("spw").value;
+  if(mode === "signup" && pw !== $("spw2").value){ $("serr").textContent = "The two passwords don't match."; return; }
+  if(!name || !pw){ $("serr").textContent = "Type a name and a password."; return; }
+  $("serr").textContent = "";
+  try{
+    const r = await api("/" + mode, {name, pw});
+    TOKEN = r.token; store("prToken", TOKEN);
+    ME = r.me; closeModal(); drawWho(); route(); dailyToast(ME);
+    if(pendingOpen){ const s = pendingOpen; pendingOpen = null; openStage(s); }
+  }catch(e){ $("serr").textContent = e.message; }
+}
+async function signOut(){
+  try{ await api("/logout", {}); }catch(e){}
+  signedOut(); route();
+}
+function signedOut(){ TOKEN = null; ME = null; store("prToken", null); drawWho(); }
+function drawWho(){
+  $("buxchip").classList.toggle("hide", !ME);
+  if(ME) $("buxn").textContent = bux(ME.bux);
+  $("whoName").innerHTML = ME ? 'Hi, <b style="color:var(--text)">' + esc(ME.name) + '</b>' : "";
+  $("signBtn").textContent = ME ? "Sign out" : "Sign in";
+  $("signBtn").onclick = ME ? signOut : () => showSignIn();
+}
+function closeModal(){ $("modal").classList.add("hide"); $("modal").innerHTML = ""; }
+
+/* ---------------- routing: #open  #collection  #set/ID  #friends  #player/NAME[/set/ID]  #pulls ---------------- */
+window.addEventListener("hashchange", () => { if(ST) hideStage(); closeModal(); route(); });
+function route(){
+  const h = decodeURIComponent(location.hash.slice(1)) || "open";
+  const [a, b, c, d] = h.split("/");
+  const tab = a === "set" ? "collection" : a === "player" ? (ME && b && b.toLowerCase() === ME.name.toLowerCase() ? "collection" : "friends") : a;
+  document.querySelectorAll("nav a").forEach(x => x.classList.toggle("on", x.dataset.tab === tab));
+  window.scrollTo(0, 0);
+  if(a === "collection") return showCollection(null);
+  if(a === "set") return showBinder(null, b);
+  if(a === "friends") return showFriends();
+  if(a === "player" && c === "set") return showBinder(b, d);
+  if(a === "player") return showCollection(b);
+  if(a === "pulls") return showPulls();
+  if(a === "earn") return showEarn();
+  if(a === "wheel") return showWheel();
+  if(a === "numbers") return showNumberWheel();
+  return showPacks();
+}
+function offlineBanner(){
+  return ONLINE ? "" : '<div class="banner"><b>The Pack Rip servers can\'t be reached right now.</b> Your collection is safe — try again in a little bit!</div>';
+}
+function needSignIn(what){
+  return '<div class="empty"><p>Sign in to ' + what + '.</p><button class="btn main" onclick="showSignIn()">Sign in</button> '
+       + '<button class="btn" onclick="showSignIn(\'signup\')">Make an account</button></div>';
+}
+
+/* ---------------- Open packs: a shelf you scroll through, one big pack at a time ---------------- */
+// The real pack: TCGplayer's photo of the set's booster pack (server: /packimg/<set>), as the pack's
+// background - so the tear-off strip (.flap, background:inherit) is the top of the real photo too.
+// On the shelf it's lazy (data-photo) and shelfLayout loads the packs near the middle. Sets with no
+// photo keep the drawn pack below.
+const packPhoto = s => SERVER + "/packimg/" + encodeURIComponent(s.id);
+function packArt(s, extra, lazy){
+  if(s.photo && SERVER){
+    const url = packPhoto(s);
+    return '<div class="pack real' + (extra || "") + '" style="--h:' + hueOf(s.id) + (lazy ? '' : ';background-image:url(\'' + esc(url) + '\')') + '"'
+      + (lazy ? ' data-photo="' + esc(url) + '"' : '') + ' role="img" aria-label="' + esc(s.name) + ' booster pack">'
+      + '<div class="glare"></div><div class="crimp t"></div></div>';
+  }
+  return '<div class="pack' + (extra || "") + '" style="--h:' + hueOf(s.id) + '">'
+    + '<div class="ball"></div>'
+    + (s.logo ? '<img class="lg" src="' + esc(pic(s.logo)) + '" alt="' + esc(s.name) + '" loading="lazy" draggable="false">' : '<div class="sn">' + esc(s.name) + '</div>')
+    + '<div class="band"><span>BOOSTER PACK</span><b>' + esc(s.name) + '</b><span>' + (s.size || 10) + ' CARDS</span></div>'
+    + '<div class="pfoil"></div><div class="glare"></div>'
+    + '<div class="crimp t"></div><div class="crimp b"></div></div>';
+}
+let shelfList = [], shelfIdx = -1, shelfRaf = 0, shelfWheel = 0, shelfAim = {i: -1, t: 0};
+function showPacks(){
+  const m = $("main");
+  if(!SETS.length){
+    m.innerHTML = offlineBanner() + (ONLINE ? '<div class="spin"></div>' : '<div class="empty">The packs will show up here once the servers are back.</div>');
+    return;
+  }
+  const series = [...new Set(SETS.map(s => s.series))];
+  m.innerHTML = offlineBanner()
+    + '<div class="packtop"><h1>Pick a pack</h1><input class="search" id="pq" placeholder="Search every set…" value="' + esc(packFilter.q) + '"></div>'
+    + '<div class="chips scroll">' + ['', ...series].map(x => '<button class="chip' + (packFilter.series === x ? " on" : "") + '" data-s="' + esc(x) + '">' + esc(x || "All sets") + '</button>').join("") + '</div>'
+    + '<div class="shelf"><button class="arrow l" onclick="shelfGo(-1)" aria-label="Previous pack">‹</button>'
+    + '<div class="track" id="track"></div>'
+    + '<button class="arrow r" onclick="shelfGo(1)" aria-label="Next pack">›</button></div>'
+    + '<div class="pinfo" id="pinfo"></div>';
+  $("pq").oninput = e => { packFilter.q = e.target.value; packFilter.at = null; drawPacks(); };
+  m.querySelectorAll(".chip").forEach(b => b.onclick = () => {
+    packFilter.series = b.dataset.s; packFilter.at = null;
+    m.querySelectorAll(".chip").forEach(x => x.classList.toggle("on", x === b));
+    drawPacks();
+  });
+  drawPacks();
+}
+function drawPacks(){
+  const q = packFilter.q.trim().toLowerCase();
+  // searching looks through every set, whatever series chip is picked
+  shelfList = SETS.filter(s => q ? (s.name + " " + s.series).toLowerCase().includes(q) : (!packFilter.series || s.series === packFilter.series));
+  const tr = $("track");
+  shelfIdx = -1;
+  if(!shelfList.length){ tr.innerHTML = '<div class="empty" style="flex:none;width:var(--pw)">No sets match that.</div>'; $("pinfo").innerHTML = ""; return; }
+  tr.innerHTML = shelfList.map((s, i) => '<button class="slot" data-i="' + i + '" aria-label="' + esc(s.name) + '">' + packArt(s, "", true) + '</button>').join("");
+  tr.querySelectorAll(".slot").forEach(b => b.onclick = () => {
+    if(tr.dataset.dragged === "1") return;
+    const i = +b.dataset.i;
+    if(i === shelfIdx) openStage(shelfList[i].id); else shelfTo(i);
+  });
+  tr.onscroll = () => { cancelAnimationFrame(shelfRaf); shelfRaf = requestAnimationFrame(shelfLayout); };
+  shelfDrag(tr);
+  const start = Math.max(0, shelfList.findIndex(s => s.id === packFilter.at));
+  requestAnimationFrame(() => { shelfTo(start, true); shelfLayout(); });
+}
+function shelfTo(i, instant){
+  const tr = $("track"), el = tr && tr.children[i];
+  if(!el) return;
+  shelfAim = {i, t: Date.now()};
+  tr.scrollTo({left: el.offsetLeft + el.offsetWidth / 2 - tr.clientWidth / 2, behavior: instant ? "auto" : "smooth"});
+}
+function shelfGo(d){
+  if(!shelfList.length) return;
+  // while a smooth scroll is still moving, step on from where it's heading, not where it is
+  const from = Date.now() - shelfAim.t < 700 && shelfAim.i >= 0 ? shelfAim.i : shelfIdx;
+  shelfTo(Math.max(0, Math.min(shelfList.length - 1, from + d)));
+}
+// Cover-flow: the pack in the middle is big and bright, the ones beside it turn away and shrink.
+function shelfLayout(){
+  const tr = $("track");
+  if(!tr || !shelfList.length) return;
+  const mid = tr.scrollLeft + tr.clientWidth / 2;
+  let best = 0, bestD = 1e9;
+  [...tr.children].forEach((el, i) => {
+    const w = el.offsetWidth, d = (el.offsetLeft + w / 2 - mid) / w, a = Math.min(Math.abs(d), 2);
+    if(Math.abs(d) < bestD){ bestD = Math.abs(d); best = i; }
+    if(Math.abs(d) > 4) return;
+    const pk = el.firstChild;
+    if(pk.dataset.photo && !pk.style.backgroundImage) pk.style.backgroundImage = "url('" + pk.dataset.photo + "')";
+    pk.style.transform = "perspective(1000px) rotateY(" + (-Math.max(-2, Math.min(2, d)) * 24) + "deg) scale(" + (1 - a * .17) + ")";
+    pk.style.filter = "brightness(" + (1 - a * .3) + ")";
+    el.style.zIndex = 10 - Math.round(a * 3);
+  });
+  if(best === shelfIdx) return;
+  if(shelfIdx >= 0) sfx("tick");
+  shelfIdx = best; packFilter.at = shelfList[best].id;
+  [...tr.children].forEach((el, i) => el.classList.toggle("on", i === best));
+  const s = shelfList[best];
+  $("pinfo").innerHTML = '<div class="pname">' + esc(s.name) + '</div>'
+    + '<div class="note">' + esc(s.series) + ' · ' + esc(fmtDate(s.date)) + ' · ' + s.total + ' cards in the set</div>'
+    + (s.price
+      ? '<div class="ppack">Costs <b>' + COIN + ' ' + bux(s.price.p) + ' PokéBux</b> <span class="note">(' + money(s.price.p) + ' on TCGplayer'
+          + (s.price.low ? ', cheapest listing' : '') + ')</span></div>'
+        + '<button class="btn rip" onclick="openStage(\'' + esc(s.id) + '\')">RIP IT!</button>'
+        + (ME ? '<div class="note" style="margin-top:8px">You have ' + bux(ME.bux) + ' PokéBux'
+            + (ME.bux < s.price.p ? ' — <a href="#earn">claim more on the Earn page</a>' : '') + '</div>' : '')
+      : '<div class="ppack">Sold out — no packs of this set are for sale on TCGplayer right now</div>'
+        + '<button class="btn rip" disabled style="opacity:.35;animation:none;cursor:default">SOLD OUT</button>')
+    + '<div class="note" style="margin-top:12px">' + (best + 1) + ' of ' + shelfList.length + (matchMedia("(pointer:coarse)").matches ? " · swipe to browse" : " · ← → to browse") + '</div>';
+}
+function fmtDate(d){
+  if(!d) return "";
+  const t = new Date(d.replace(/\//g, "-") + "T12:00:00");
+  return isNaN(t) ? d : t.toLocaleDateString(undefined, {month: "short", year: "numeric"});
+}
+// Mouse users can grab the shelf and drag it; the wheel steps one pack at a time.
+function shelfDrag(tr){
+  let x0 = 0, s0 = 0, down = false;
+  tr.onpointerdown = e => { if(e.pointerType !== "mouse") return; down = true; x0 = e.clientX; s0 = tr.scrollLeft; tr.dataset.dragged = "0"; };
+  tr.onpointermove = e => {
+    if(!down) return;
+    const dx = e.clientX - x0;
+    if(Math.abs(dx) > 6 && tr.dataset.dragged !== "1"){ tr.dataset.dragged = "1"; tr.classList.add("dragging"); }
+    if(tr.dataset.dragged === "1") tr.scrollLeft = s0 - dx;
+  };
+  const up = () => {
+    if(!down) return;
+    down = false;
+    if(tr.classList.contains("dragging")){ tr.classList.remove("dragging"); shelfTo(shelfIdx); setTimeout(() => tr.dataset.dragged = "0", 60); }
+  };
+  tr.onpointerup = up; tr.onpointerleave = up;
+  tr.onwheel = e => {
+    const d = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+    if(Math.abs(d) < 4) return;
+    e.preventDefault();
+    const now = Date.now();
+    if(now - shelfWheel > 170){ shelfWheel = now; shelfGo(Math.sign(d)); }
+  };
+}
+
+/* ---------------- the opening stage ---------------- */
+const TIER_COLOR = {3: "#dfe6ff", 4: "#4da3ff", 5: "#ffc83d", 6: "#ff5fd2", 7: "#c58bff"};
+// Face down until you flip it: every pack's last card (its rare slot), plus any other big hit.
+// In a god pack, the first good card comes out face UP - no warning glow - and that's the moment the
+// god pack is revealed (godMoment). The rest of its hits then flip as usual.
+const godFirst = () => ST.god ? ST.pack.findIndex(c => c.t >= 4) : -1;
+const faceDown = i => i !== godFirst() && (ST.pack[i].t >= 4 || i === ST.pack.length - 1);
+let pendingOpen = null, ST = null;
+function openStage(setId){
+  if(!ME){ pendingOpen = setId; showSignIn(); return; }
+  const want = SETMAP[setId];
+  if(want && want.pack && !(ST && ST.preview)){
+    if(!want.price){ toast("No packs of " + esc(want.name) + " are for sale right now."); return; }
+    if(ME.bux < want.price.p){ toast("This pack costs " + COIN + " " + bux(want.price.p) + " PokéBux and you have " + bux(ME.bux) + ". <b>Claim more on the Earn page!</b>"); return; }
+  }
+  const s = SETMAP[setId];
+  if(!s || !s.pack) return;  // never sold in packs: nothing to open
+  // where the chosen pack sits on the shelf right now, so it can fly from there to the stage
+  let from = null;
+  const shelfPack = $("track") && shelfList[shelfIdx] && shelfList[shelfIdx].id === setId && document.querySelector(".slot.on .pack");
+  if(shelfPack && !ST){
+    const r = shelfPack.getBoundingClientRect();
+    if(r.bottom > 0 && r.top < innerHeight) from = r;
+  }
+  const again = !!ST;
+  if(ST) stopRiser();
+  ST = {set: s, phase: "pack", prog: 0, busy: true, asking: null, i: 0, drag: null};
+  const st = $("stage");
+  st.className = again ? "" : "enter";
+  st.innerHTML = '<div class="blob b1"></div><div class="blob b2"></div><canvas id="fx"></canvas>'
+    + '<div class="top"><span class="ttl">' + esc(s.name) + '</span>'
+    + '<button class="btn small hide" id="skipBtn" onclick="showSummary()">Skip ›</button>'
+    + '<button class="iconbtn" onclick="toggleMute()" id="mute2">' + (MUTED ? "🔇" : "🔊") + '</button>'
+    + '<button class="btn small" onclick="closeStage()">✕ Close</button></div>'
+    + '<div class="rname" id="rname"></div>'
+    + '<div class="arena" id="arena"><div class="rays" id="rays"></div><div class="deck" id="deck"></div>'
+    + packArt(s).replace('<div class="crimp t"></div>', '<div class="flap"><div class="crimp t"></div></div><div class="cut" id="cut"><i></i></div>')
+    + '<div class="light" id="light"></div></div>'
+    + '<div class="hint later" id="hint"><span class="swipe">👆</span>Swipe across the top to rip it open</div>';
+  document.body.style.overflow = "hidden";
+  fxSize();
+  const ar = $("arena");
+  ar.onpointerdown = pDown; ar.onpointermove = pMove; ar.onpointerup = pUp; ar.onpointercancel = pUp;
+  st.onpointermove = e => { if(ST && !ST.drag) tilt(e); };
+  st.onpointerleave = () => tilt(null);
+  packIntro(from);
+}
+
+// The chosen pack's entrance: from its spot on the shelf (or out of a burst of light, when there's no
+// shelf behind it) it twirls into the middle (a flat twirl - a Y-spin would show the logo mirrored), lands with a flash, rays in the pack's own
+// colour, a shockwave ring and sparks - then floats until you rip it.
+function packIntro(from){
+  const set = ST, pk = document.querySelector("#arena .pack"), ar = $("arena");
+  const hue = hueOf(set.set.id), col = "hsl(" + hue + " 90% 65%)";
+  const to = pk.getBoundingClientRect();
+  let frames;
+  if(from){
+    const dx = (from.left + from.width / 2) - (to.left + to.width / 2);
+    const dy = (from.top + from.height / 2) - (to.top + to.height / 2);
+    const k = from.width / to.width;
+    frames = [
+      {transform: "perspective(900px) translate(" + dx + "px," + dy + "px) scale(" + k + ") rotate(0deg) rotateY(0deg)"},
+      {transform: "perspective(900px) translate(" + (dx * .35) + "px," + (dy * .35 - 60) + "px) scale(" + ((k + 1.2) / 2) + ") rotate(200deg) rotateY(25deg)", offset: .45},
+      {transform: "perspective(900px) translate(0px,-24px) scale(1.12) rotate(350deg) rotateY(-10deg)", offset: .78},
+      {transform: "perspective(900px) translate(0px,0px) scale(1) rotate(360deg) rotateY(0deg)"}
+    ];
+  } else {
+    frames = [
+      {transform: "perspective(900px) scale(.05) rotate(-540deg)", opacity: 0},
+      {transform: "perspective(900px) scale(1.15) rotate(-20deg)", opacity: 1, offset: .7},
+      {transform: "perspective(900px) scale(1) rotate(0deg)", opacity: 1}
+    ];
+  }
+  const dur = from ? 1100 : 950;
+  sfx("appear");
+  const anim = pk.animate(frames, {duration: dur, easing: "cubic-bezier(.25,.8,.25,1)"});
+  anim.onfinish = () => {
+    if(ST !== set || ST.phase !== "pack") return;  // already being ripped: no landing show, no float
+    // the landing: flash, rays, ring, sparks, thud + shing
+    const rays = $("rays");
+    rays.style.setProperty("--rc", col);
+    rays.className = "rays on boom";
+    setTimeout(() => { if(ST === set && ST.phase === "pack") rays.className = "rays on"; }, 900);
+    const ring = document.createElement("div"); ring.className = "ring"; ring.style.setProperty("--rc", col);
+    ar.appendChild(ring); setTimeout(() => ring.remove(), 950);
+    const f = document.createElement("div"); f.className = "flash"; $("stage").appendChild(f); setTimeout(() => f.remove(), 850);
+    const r = pk.getBoundingClientRect();
+    emit(r.left + r.width / 2, r.top + r.height / 2, 70, [col, "#fff", "hsl(" + ((hue + 40) % 360) + " 90% 70%)"], "spark", 1.3);
+    sfx("thud"); sfx("land-chime");
+    pk.classList.add("idle");
+    ST.busy = false;
+  };
+}
+function stopRiser(){ if(ST && ST.riser){ ST.riser(); ST.riser = null; } }
+function hideStage(){
+  stopRiser();
+  $("stage").classList.add("hide"); $("stage").innerHTML = ""; ST = null;
+  FX.p = []; FX.x = null;
+  document.body.style.overflow = "";
+}
+function closeStage(){ hideStage(); route(); }
+document.addEventListener("keydown", e => {
+  if(ST){
+    if(e.key === "Escape") return closeStage();
+    if(e.key === " " || e.key === "Enter" || e.key === "ArrowRight" || e.key === "ArrowLeft"){
+      if(e.target.closest && e.target.closest("button") && ST.phase === "done") return;
+      e.preventDefault(); stageKey(e.key === "ArrowRight" ? 1 : -1);
+    }
+    else if(e.key.toLowerCase() === "s") showSummary();
+    return;
+  }
+  if(!$("modal").classList.contains("hide")){ if(e.key === "Escape") closeModal(); return; }
+  if(!$("track") || (e.target.matches && e.target.matches("input"))) return;
+  if(e.key === "ArrowLeft"){ e.preventDefault(); shelfGo(-1); }
+  else if(e.key === "ArrowRight"){ e.preventDefault(); shelfGo(1); }
+  else if(e.key === "Enter" && !(e.target.closest && e.target.closest("button,a")) && shelfList[shelfIdx]) openStage(shelfList[shelfIdx].id);
+});
+function stageKey(dir){
+  if(!ST || ST.busy) return;
+  if(ST.phase === "pack") return autoTear();
+  if(ST.phase === "cards") return ST.flipped ? toss(dir) : flipCard();
+}
+
+// the pack / top card leans toward the pointer, and its shine follows it
+function tilt(e){
+  const ar = $("arena");
+  if(!ar) return;
+  if(!e){ ar.style.setProperty("--rx", "0deg"); ar.style.setProperty("--ry", "0deg"); return; }
+  const r = ar.getBoundingClientRect();
+  const px = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)), py = Math.max(0, Math.min(1, (e.clientY - r.top) / r.height));
+  ar.style.setProperty("--rx", ((.5 - py) * 10).toFixed(1) + "deg");
+  ar.style.setProperty("--ry", ((px - .5) * 14).toFixed(1) + "deg");
+  ar.style.setProperty("--gx", (px * 100).toFixed(0) + "%");
+  ar.style.setProperty("--gy", (py * 100).toFixed(0) + "%");
+}
+
+function pDown(e){
+  if(!ST || ST.busy || e.button > 0) return;
+  if(ST.phase === "pack"){
+    ST.drag = {x: e.clientX, y: e.clientY, moved: false, from: ST.prog};
+    $("arena").setPointerCapture(e.pointerId);
+    startAsk();
+  } else if(ST.phase === "cards" && $("big")){
+    ST.drag = {x: e.clientX, y: e.clientY, moved: false, t: performance.now()};
+    $("arena").setPointerCapture(e.pointerId);
+    $("big").classList.add("held");
+  }
+}
+function pMove(e){
+  if(!ST || !ST.drag) return;
+  const d = ST.drag, dx = e.clientX - d.x, dy = e.clientY - d.y;
+  if(Math.hypot(dx, dy) > 8) d.moved = true;
+  if(ST.phase === "pack"){
+    const p = Math.min(1, d.from + Math.abs(dx) / ($("arena").offsetWidth * .85));
+    if(p > ST.prog) tearTo(p);
+    if(p >= 1){ ST.drag = null; finishTear(); }
+  } else if(ST.phase === "cards" && ST.flipped){
+    $("big").style.transform = "translate(" + dx + "px," + (dy * .4) + "px) rotate(" + (dx * .06) + "deg)";
+  }
+}
+function pUp(e){
+  if(!ST || !ST.drag) return;
+  const d = ST.drag, dx = e.clientX - d.x;
+  ST.drag = null;
+  if(ST.phase === "pack"){ if(!d.moved || ST.prog > .5) autoTear(); return; }
+  if(ST.phase !== "cards") return;
+  const b = $("big");
+  if(!b) return;
+  b.classList.remove("held");
+  if(!ST.flipped) return flipCard();
+  const fast = Math.abs(dx) / Math.max(1, performance.now() - d.t) > .55;
+  if(Math.abs(dx) > 90 || (fast && Math.abs(dx) > 30)) return toss(Math.sign(dx));
+  if(!d.moved) return toss(-1);
+  b.style.transition = "transform .35s cubic-bezier(.3,1.5,.5,1)"; b.style.transform = "";
+  setTimeout(() => { if(b) b.style.transition = ""; }, 360);
+}
+
+// ask the server for the pack as soon as the rip starts, so it's ready when the pack opens
+function startAsk(){ if(!ST.asking) ST.asking = api("/open", {set: ST.set.id}).then(r => ({r}), e => ({e})); }
+function tearTo(p){
+  ST.prog = p;
+  const pk = document.querySelector("#arena .pack");
+  $("cut").style.setProperty("--p", p);
+  pk.querySelector(".flap").style.transform = "rotate(" + (-p * 4) + "deg) translateY(" + (-p * 4) + "px)";
+  const r = $("cut").getBoundingClientRect();
+  emit(r.left + r.width * p, r.top, 3, ["#fff", "#ffe08a", "#ffb03d"], "spark", .6);
+  const now = performance.now();
+  if(!ST.lastCr || now - ST.lastCr > 45){ ST.lastCr = now; sfx("crinkle", .4 + p * .6); }
+  $("hint").textContent = "";
+}
+function autoTear(){
+  if(!ST || ST.phase !== "pack" || ST.autoing) return;
+  ST.autoing = true; startAsk();
+  const from = ST.prog, t0 = performance.now(), dur = 420 * (1 - from) + 80;
+  const step = now => {
+    if(!ST || ST.phase !== "pack") return;
+    const k = Math.min(1, (now - t0) / dur);
+    tearTo(from + (1 - from) * k);
+    if(k < 1) requestAnimationFrame(step); else finishTear();
+  };
+  requestAnimationFrame(step);
+}
+async function finishTear(){
+  if(!ST || ST.phase !== "pack") return;
+  ST.phase = "opening"; ST.busy = true;
+  startAsk();
+  const pk = document.querySelector("#arena .pack");
+  pk.classList.remove("idle"); pk.classList.add("torn");
+  $("light").classList.add("on");
+  sfx("rip");
+  const r = $("cut").getBoundingClientRect();
+  emit(r.left + r.width / 2, r.top, 60, ["#fff", "#ffe08a", "#ffb03d", "#fff6cf"], "spark", 1.2);
+  $("hint").textContent = "";
+  await wait(300);
+  openPack();
+}
+async function openPack(){
+  const pk = document.querySelector("#arena .pack");
+  pk.classList.add("glowing");
+  const got = await ST.asking;
+  if(!ST) return;
+  if(got.e){
+    pk.classList.remove("glowing");
+    $("hint").innerHTML = esc(got.e.message) + '<br><button class="btn" id="retry">Try again</button>';
+    $("retry").onclick = () => { ST.asking = null; startAsk(); $("hint").textContent = ""; openPack(); };
+    return;
+  }
+  const res = got.r;
+  // the big card pictures, before the cards come out (never wait more than 4s for them)
+  const loads = res.pack.map(c => new Promise(ok => { const img = new Image(); img.onload = img.onerror = ok; img.src = pic(c.l || c.s); }));
+  await Promise.race([Promise.all(loads), wait(4000)]);
+  if(!ST) return;
+  ST.pack = res.pack; ST.value = res.value; ST.i = 0; ST.god = res.god; ST.cost = res.cost;
+  if(!ST) return;
+  for(const c of res.pack){ ME.cards[c.id] = (ME.cards[c.id] || 0) + 1; cardIndex[c.id] = cardIndex[c.id] || c; }
+  ME.packs = res.packs;
+  if(res.bux != null){ ME.bux = res.bux; drawWho(); }
+  // the cards slide up out of the pack, then the empty pack drops away
+  const deck = $("deck");
+  deck.innerHTML = '<div class="dtilt">' + stackHTML(0) + '</div>';
+  pk.classList.remove("glowing");
+  deck.classList.add("rise");
+  sfx("whoosh");
+  await wait(480);
+  pk.classList.add("away");
+  deck.classList.add("up");
+  await wait(650);
+  if(!ST) return;
+  sfx("land");
+  ST.phase = "cards"; ST.busy = false;
+  showCard();
+}
+// The cards waiting under the top one. The very next card sits face up exactly where the top card is,
+// so swiping the top card away simply uncovers it - no card backs, nothing jumping into place.
+// Only a face-down card (see faceDown) waits as a card back, for its flip.
+function stackHTML(from){
+  const n = Math.min(3, ST.pack.length - from), out = [];
+  for(let k = n - 1; k >= 0; k--){
+    const c = ST.pack[from + k];
+    out.push(faceDown(from + k) ? '<div class="back cardback" style="--k:' + k + '"></div>'
+      : '<div class="back under" style="--k:' + k + '"><img src="' + esc(pic(c.l || c.s)) + '" alt="' + esc(c.n) + '" draggable="false"></div>');
+  }
+  return out.join("");
+}
+// A god pack (or demi-god pack): the whole screen celebrates the moment its first good card appears.
+async function godMoment(kind){
+  const st = $("stage"), rays = $("rays"), rn = $("rname"), at = ST.i;
+  const r = $("arena").getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  const pal = ["#ff5f5f", "#ffd24d", "#5fffb0", "#5fc8ff", "#c58bff", "#fff"];
+  rays.style.setProperty("--rc", "#c58bff");
+  rays.className = "rays on boom g7";
+  rn.textContent = kind === "god" ? "GOD PACK!!" : "DEMI-GOD PACK!";
+  rn.className = "rname g7 godpack"; rn.style.setProperty("--rc", "#c58bff");
+  st.classList.remove("quake"); void st.offsetWidth; st.classList.add("quake");
+  const f = document.createElement("div"); f.className = "flash"; st.appendChild(f); setTimeout(() => f.remove(), 850);
+  emit(cx, cy, 200, pal, "spark", 1.8);
+  emit(cx, r.top, 220, pal, "confetti", 1.2);
+  sfx("reveal", 7); sfx("godpack");
+  await wait(900);
+  if(!ST) return;
+  emit(innerWidth * .2, innerHeight * .3, 90, pal, "confetti", 1);
+  emit(innerWidth * .8, innerHeight * .3, 90, pal, "confetti", 1);
+  await wait(1700);
+  if(ST && ST.i === at && ST.phase === "cards") rays.className = "rays";  // not if you've moved on to a card with its own glow
+}
+function showCard(){
+  const c = ST.pack[ST.i], hit = faceDown(ST.i), left = ST.pack.length - ST.i - 1;
+  const col = TIER_COLOR[c.t] || "#ffffff";
+  $("deck").innerHTML = '<div class="dtilt">' + stackHTML(ST.i + 1)
+    + '<div class="big' + (hit ? " hit down g" + c.t : "") + '" id="big" style="--rc:' + col + '">'
+    + '<div class="tag off" id="tag">' + (c.new ? '<span class="n">NEW!</span>' : '') + '<span>' + esc(c.r || "Card") + rhName(c) + '</span>'
+    + (c.p != null ? '<span style="color:var(--' + (c.e ? 'gold' : 'green') + ')">' + (c.e ? "~" : "") + money(c.p) + '</span>' : '') + '</div>'
+    + '<div class="shk"><div class="tilt"><div class="inner"><div class="face"><img src="' + esc(pic(c.l || c.s)) + '" alt="' + esc(c.n) + '" draggable="false"></div>'
+    + (hit ? '<div class="bk cardback"></div>' : '') + '</div></div></div></div>'
+    + '<div class="count">' + (ST.i + 1) + ' / ' + ST.pack.length + '</div></div>';
+  const rays = $("rays");
+  rays.className = "rays" + (hit ? " on g" + c.t : "");
+  rays.style.setProperty("--rc", col);
+  ST.flipped = !hit;
+  $("skipBtn").classList.toggle("hide", left === 0);
+  if(hit){
+    ST.riser = sfx("riser", c.t);
+    $("hint").textContent = "✨ Something special… tap to flip it!";
+  } else {
+    $("tag").classList.remove("off");
+    if(ST.i) sfx("flip");
+    if(ST.i === godFirst() && !ST.godShown){ ST.godShown = true; godMoment(ST.god); }
+    $("hint").textContent = ST.i === 0 ? "Swipe the card away (or tap) for the next one" : left ? "" : "Last card! Swipe to see your whole pack";
+  }
+}
+async function flipCard(){
+  if(!ST || ST.flipped || ST.busy) return;
+  ST.busy = true; ST.flipped = true;
+  const c = ST.pack[ST.i], b = $("big");
+  stopRiser();
+  sfx("flip");
+  // a smooth turn: it lifts a little toward you as it turns over, then settles - no overshoot
+  b.classList.remove("down");
+  b.querySelector(".inner").animate([
+    {transform: "rotateY(180deg) translateZ(0px) scale(1)"},
+    {transform: "rotateY(90deg) translateZ(60px) scale(1.06)", offset: .5},
+    {transform: "rotateY(0deg) translateZ(0px) scale(1)"}
+  ], {duration: 650, easing: "cubic-bezier(.45,.05,.25,1)"});
+  await wait(330);
+  if(!ST) return;
+  reveal(c);
+  $("tag").classList.remove("off");
+  $("hint").textContent = "Swipe it away when you're ready";
+  await wait(350);
+  ST.busy = false;
+}
+function reveal(c){
+  const col = TIER_COLOR[c.t] || "#fff";
+  $("rays").classList.add("boom");
+  const r = $("arena").getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  const pal = c.t >= 7 ? ["#ff5f5f", "#ffd24d", "#5fffb0", "#5fc8ff", "#c58bff", "#fff"] : [col, "#fff", col];
+  emit(cx, cy, {3: 35, 4: 50, 5: 90, 6: 120, 7: 170}[c.t] || 30, pal, "spark", c.t >= 6 ? 1.5 : 1.1);
+  if(c.t >= 5){
+    emit(cx, r.top, c.t >= 7 ? 160 : c.t >= 6 ? 110 : 70, c.t >= 7 ? pal : [col, "#fff", "#ff5fd2", "#4da3ff", "#ffc83d"], "confetti", 1);
+    const st = $("stage");
+    st.classList.remove("quake"); void st.offsetWidth; st.classList.add("quake");
+    const f = document.createElement("div"); f.className = "flash"; st.appendChild(f); setTimeout(() => f.remove(), 850);
+  }
+  const rn = $("rname");
+  rn.textContent = (c.r || "Rare").toUpperCase() + "!";
+  rn.className = "rname g" + c.t; rn.style.setProperty("--rc", col);
+  void rn.offsetWidth; rn.classList.add("pop");
+  sfx("reveal", c.t);
+}
+async function toss(dir){
+  if(!ST || ST.busy || ST.phase !== "cards") return;
+  ST.busy = true;
+  const b = $("big");
+  b.style.transition = "transform .34s ease-in, opacity .34s ease-in";
+  b.style.transform = "translate(" + (dir * 125) + "vw,-6vh) rotate(" + (dir * 32) + "deg)";
+  b.style.opacity = "0";
+  $("rays").className = "rays";
+  sfx("whoosh");
+  await wait(230);
+  if(!ST) return;
+  ST.i++;
+  ST.busy = false;
+  if(ST.i >= ST.pack.length) showSummary(); else showCard();
+}
+function showSummary(){
+  if(!ST || ST.phase !== "cards") return;
+  stopRiser();
+  ST.phase = "done";
+  $("skipBtn").classList.add("hide");
+  $("rname").className = "rname";
+  $("rays").className = "rays";
+  const best = ST.pack.reduce((a, c) => (c.t > a.t || (c.t === a.t && (c.p || 0) > (a.p || 0))) ? c : a, ST.pack[0]);
+  const news = ST.pack.filter(c => c.new).length;
+  const priced = ST.pack.some(c => c.p != null);
+  const guessed = ST.pack.some(c => c.e);
+  $("arena").outerHTML = '<div class="summary" id="arena"><div class="tot"><span id="totv">' + (priced ? money(0) : "No prices yet") + '</span>'
+    + (ST.cost && priced ? (() => { const diff = ST.value - ST.cost.p;
+        return '<div class="pl ' + (diff >= 0 ? "up" : "down") + '">Pack cost ' + money(ST.cost.p) + ' · '
+          + (diff >= 0 ? 'you came out ' + money(diff) + ' ahead!' : 'you lost ' + money(-diff)) + '</div>'; })() : '')
+    + (ST.god ? '<div class="godtag">' + (ST.god === "god" ? "GOD PACK!" : "DEMI-GOD PACK!") + '</div>' : '')
+    + '<small>' + (priced ? (guessed ? "pack value (about — some prices are estimates)" : "pack value") : "this set is too new to have prices")
+    + ' · best pull: ' + esc(best.n) + (best.p != null ? ' (' + (best.e ? "~" : "") + money(best.p) + ')' : '')
+    + ' · ' + news + ' new for your collection</small></div>'
+    + '<div class="cards"' + (ST.pack.length < 5 ? ' style="grid-template-columns:repeat(' + ST.pack.length + ',minmax(0,180px));justify-content:center"' : '') + '>' + ST.pack.map((c, i) => cardTile(c, {showNew: true, big: true}).replace('<button class="', '<button style="animation-delay:' + (i * 70) + 'ms" class="')).join("") + '</div></div>';
+  $("hint").innerHTML = '<button class="btn main" onclick="openStage(\'' + esc(ST.set.id) + '\')">Rip another ' + esc(ST.set.name) + (ST.set.price ? ' · ' + bux(ST.set.price.p) + ' PB' : '') + '</button>'
+    + '<button class="btn" onclick="closeStage()">Pick a different pack</button>';
+  ST.pack.forEach((c, i) => setTimeout(() => sfx("deal"), i * 70));
+  if(priced){
+    // count the value up, ticking like a slot machine
+    const target = ST.value, t0 = performance.now(), set = ST;
+    const step = now => {
+      if(ST !== set || !$("totv")) return;
+      const k = Math.min(1, (now - t0) / 1100), v = target * (1 - Math.pow(1 - k, 3));
+      $("totv").textContent = (guessed ? "~" : "") + money(v);
+      if(k < 1){ if(Math.random() < .5) sfx("tick"); requestAnimationFrame(step); }
+      else sfx("ding");
+    };
+    requestAnimationFrame(step);
+  }
+}
+
+/* ---------------- sparks + confetti (one canvas over the stage) ---------------- */
+const FX = {p: [], on: false, x: null, dpr: 1};
+function fxSize(){
+  const c = $("fx");
+  if(!c) return;
+  FX.dpr = Math.min(2, devicePixelRatio || 1);
+  c.width = innerWidth * FX.dpr; c.height = innerHeight * FX.dpr;
+  FX.x = c.getContext("2d");
+}
+window.addEventListener("resize", () => { if(ST) fxSize(); });
+function emit(x, y, n, colors, kind, power){
+  if(!FX.x) return;
+  power = power || 1;
+  for(let i = 0; i < n; i++){
+    const a = Math.random() * Math.PI * 2, conf = kind === "confetti";
+    const v = (conf ? 3 + Math.random() * 8 : 2 + Math.random() * 9) * power;
+    FX.p.push({x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - (conf ? 6 : 1.5), life: 1,
+      decay: conf ? .005 + Math.random() * .005 : .02 + Math.random() * .025, col: colors[i % colors.length], kind,
+      s: conf ? 6 + Math.random() * 6 : 1.5 + Math.random() * 2.5, r: Math.random() * 6, vr: (Math.random() - .5) * .35});
+  }
+  if(FX.p.length > 900) FX.p.splice(0, FX.p.length - 900);
+  if(!FX.on){ FX.on = true; requestAnimationFrame(fxLoop); }
+}
+function fxLoop(){
+  const x = FX.x;
+  if(!x){ FX.p = []; FX.on = false; return; }
+  x.setTransform(FX.dpr, 0, 0, FX.dpr, 0, 0);
+  x.clearRect(0, 0, innerWidth, innerHeight);
+  FX.p = FX.p.filter(p => p.life > 0 && p.y < innerHeight + 40);
+  for(const p of FX.p){
+    p.x += p.vx; p.y += p.vy; p.life -= p.decay;
+    if(p.kind === "confetti"){
+      p.vy += .16; p.vx *= .985; p.vy *= .985; p.r += p.vr;
+      x.save(); x.globalAlpha = Math.min(1, p.life * 2); x.translate(p.x, p.y); x.rotate(p.r);
+      x.fillStyle = p.col; x.fillRect(-p.s / 2, -p.s / 4, p.s, Math.max(1, p.s / 2 * Math.abs(Math.cos(p.r * 2))));
+      x.restore();
+    } else {
+      p.vy += .1; p.vx *= .955; p.vy *= .955;
+      x.globalAlpha = Math.max(0, p.life);
+      x.strokeStyle = p.col; x.lineWidth = p.s; x.lineCap = "round";
+      x.beginPath(); x.moveTo(p.x, p.y); x.lineTo(p.x - p.vx * 2.5, p.y - p.vy * 2.5); x.stroke();
+    }
+  }
+  x.globalAlpha = 1;
+  if(FX.p.length) requestAnimationFrame(fxLoop);
+  else { FX.on = false; x.clearRect(0, 0, innerWidth, innerHeight); }
+}
+
+/* ---------------- sounds, all made in code (no sound files) ----------------
+   One small mixer: everything goes through a compressor, and "verb" sends add a reverb
+   (a made-up echo) so the rare-card chimes ring out. */
+let AC = null, OUT = null, VERB = null, NOISE = null;
+function toggleMute(){
+  MUTED = !MUTED; store("prMute", MUTED ? "1" : "0");
+  $("mute").textContent = MUTED ? "🔇" : "🔊";
+  if($("mute2")) $("mute2").textContent = MUTED ? "🔇" : "🔊";
+  if(MUTED) stopRiser();
+}
+function audio(){
+  if(MUTED) return null;
+  try{
+    if(!AC){
+      AC = new (window.AudioContext || window.webkitAudioContext)();
+      const comp = AC.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 4;
+      OUT = AC.createGain(); OUT.gain.value = .9; OUT.connect(comp).connect(AC.destination);
+      VERB = AC.createConvolver();
+      const n = AC.sampleRate * 2.4, ir = AC.createBuffer(2, n, AC.sampleRate);
+      for(let ch = 0; ch < 2; ch++){ const d = ir.getChannelData(ch); for(let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3.5); }
+      VERB.buffer = ir;
+      const vg = AC.createGain(); vg.gain.value = .5; VERB.connect(vg).connect(OUT);
+      NOISE = AC.createBuffer(1, AC.sampleRate * 2, AC.sampleRate);
+      const d = NOISE.getChannelData(0); for(let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    if(AC.state === "suspended") AC.resume();
+    return AC;
+  }catch(e){ return null; }
+}
+function env(g, t, peak, attack, dur){
+  g.gain.setValueAtTime(.0001, t);
+  g.gain.exponentialRampToValueAtTime(peak, t + attack);
+  g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+}
+function nz(t, dur, o){           // filtered noise: rustles, rips, whooshes
+  const s = AC.createBufferSource(); s.buffer = NOISE; s.loop = true;
+  const f = AC.createBiquadFilter(); f.type = o.type || "bandpass"; f.Q.value = o.q || 1;
+  f.frequency.setValueAtTime(o.f, t); if(o.f2) f.frequency.exponentialRampToValueAtTime(o.f2, t + dur);
+  const g = AC.createGain(); env(g, t, o.g || .3, o.a || .005, dur);
+  s.connect(f).connect(g).connect(OUT); if(o.verb) g.connect(VERB);
+  s.start(t, Math.random() * 1.5); s.stop(t + dur + .05);
+  return s;
+}
+function osc(t, hz, dur, o){      // a tone: thumps, chimes, sparkles
+  o = o || {};
+  const s = AC.createOscillator(); s.type = o.type || "sine";
+  s.frequency.setValueAtTime(hz, t); if(o.hz2) s.frequency.exponentialRampToValueAtTime(o.hz2, t + dur);
+  if(o.det) s.detune.value = o.det;
+  const g = AC.createGain(); env(g, t, o.g || .2, o.a || .005, dur);
+  s.connect(g).connect(OUT); if(o.verb) g.connect(VERB);
+  s.start(t); s.stop(t + dur + .05);
+  return s;
+}
+const CHORDS = {3: [587.3, 740, 880], 4: [659.3, 830.6, 987.8], 5: [523.3, 659.3, 784, 1046.5], 6: [587.3, 740, 880, 1174.7, 1480], 7: [523.3, 659.3, 784, 987.8, 1174.7, 1568]};
+function sfx(kind, arg){
+  const ac = audio();
+  if(!ac) return () => {};
+  const t = ac.currentTime + .01, R = Math.random;
+  switch(kind){
+    case "crinkle":   // foil crackling as the pack tears
+      for(let i = 0; i < 3; i++) nz(t + R() * .03, .02 + R() * .04, {f: 2200 + R() * 5000, q: 2.5, g: .06 + .22 * (arg || .5)});
+      break;
+    case "rip":
+      nz(t, .4, {f: 900, f2: 7000, q: .8, g: .8});
+      nz(t + .03, .3, {type: "highpass", f: 3500, g: .3});
+      osc(t, 170, .3, {hz2: 45, g: .55});
+      for(let i = 0; i < 6; i++) nz(t + .1 + R() * .25, .03, {f: 3000 + R() * 4000, q: 3, g: .12});
+      break;
+    case "thud":      // the pack landing
+      osc(t, 120, .35, {hz2: 40, g: .7});
+      nz(t, .12, {type: "lowpass", f: 900, g: .35});
+      for(let i = 0; i < 4; i++) nz(t + .04 + R() * .15, .03, {f: 3000 + R() * 3000, q: 2, g: .08});
+      break;
+    case "whoosh": nz(t, .32, {f: 450, f2: 2800, q: .7, g: .4, a: .09}); break;
+    case "flip": nz(t, .05, {type: "highpass", f: 2400, g: .4}); osc(t, 1300, .05, {g: .05, type: "triangle"}); break;
+    case "land": nz(t, .07, {type: "lowpass", f: 1400, g: .45}); osc(t, 95, .16, {hz2: 50, g: .35}); break;
+    case "deal": nz(t, .06, {f: 1800 + R() * 800, q: 1.5, g: .18}); break;
+    case "tick": osc(t, 1500 + R() * 400, .03, {type: "square", g: .03}); break;
+    case "appear":    // a rising whoosh as the pack flies in
+      nz(t, .9, {f: 250, f2: 4200, q: 1.2, g: .32, a: .5});
+      osc(t, 180, .9, {hz2: 520, type: "triangle", g: .05, a: .6});
+      break;
+    case "land-chime": // the "shing" as it lands
+      [1318.5, 1760, 2637].forEach((hz, i) => osc(t + i * .06, hz, 1.1, {type: "triangle", g: .08, verb: true}));
+      nz(t, .6, {type: "highpass", f: 7000, g: .08, verb: true});
+      break;
+    case "godpack":   // a fanfare on top of the big reveal
+      [523.3, 659.3, 784, 1046.5, 784, 1046.5, 1318.5, 1568].forEach((hz, i) => osc(t + .2 + i * .11, hz, i === 7 ? 1.8 : .35, {type: "triangle", g: .09, verb: true}));
+      [2093, 2637, 3136, 4186].forEach((hz, i) => osc(t + 1.2 + i * .08, hz, .9, {g: .05, verb: true}));
+      break;
+    case "ding": osc(t, 1318.5, .9, {type: "triangle", g: .12, verb: true}); osc(t + .08, 1975.5, .9, {g: .07, verb: true}); break;
+    case "riser": {   // the build-up while a rare card waits face down; returns a stop function
+      const dur = 3.2, nodes = [];
+      const s = AC.createBufferSource(); s.buffer = NOISE; s.loop = true;
+      const f = AC.createBiquadFilter(); f.type = "bandpass"; f.Q.value = 3;
+      f.frequency.setValueAtTime(300, t); f.frequency.exponentialRampToValueAtTime(5500, t + dur);
+      const g = AC.createGain(); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.2, t + dur);
+      const o = AC.createOscillator(); o.type = "sawtooth";
+      o.frequency.setValueAtTime(80, t); o.frequency.exponentialRampToValueAtTime(arg >= 6 ? 420 : 320, t + dur);
+      const lp = AC.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 900;
+      const og = AC.createGain(); og.gain.setValueAtTime(.0001, t); og.gain.exponentialRampToValueAtTime(.08, t + dur);
+      s.connect(f).connect(g).connect(OUT); o.connect(lp).connect(og).connect(OUT);
+      s.start(t); o.start(t);
+      for(let k = 0; k < 7; k++) nodes.push(osc(t + k * .45, 70, .2, {hz2: 42, g: .25 + k * .06}));   // heartbeat
+      return () => {
+        const n = AC.currentTime;
+        [g, og].forEach(x => { x.gain.cancelScheduledValues(n); x.gain.setValueAtTime(Math.max(.0001, x.gain.value), n); x.gain.exponentialRampToValueAtTime(.0001, n + .08); });
+        try{ s.stop(n + .1); o.stop(n + .1); nodes.forEach(x => x.stop(n)); }catch(e){}
+      };
+    }
+    case "reveal": {  // BOOM + a chord that gets bigger the rarer the card
+      const tier = arg || 4;
+      if(tier >= 5){ osc(t, 95, 1.1, {hz2: 30, g: .95}); nz(t, .6, {type: "lowpass", f: 2500, f2: 150, g: .55}); }
+      else osc(t, 130, .4, {hz2: 60, g: .5});
+      nz(t, 1.3, {type: "highpass", f: 6500, g: .1, a: .02, verb: true});
+      const ch = CHORDS[tier] || CHORDS[4], len = tier >= 5 ? 2.6 : 1.3;
+      ch.forEach((hz, i) => {
+        osc(t + i * .035, hz, len, {type: "triangle", g: .085, verb: true});
+        osc(t + i * .035, hz * 2, len * .8, {g: .03, det: 8, verb: true});
+      });
+      if(tier >= 6) [2093, 2637, 3136, 4186, 3136, 4186, 5274].forEach((hz, i) => osc(t + .15 + i * .07, hz, .5, {g: .05, verb: true}));
+      if(tier >= 7) [1046.5, 1318.5, 1568, 2093, 2637].forEach((hz, i) => osc(t + .75 + i * .11, hz, 1.8, {type: "triangle", g: .07, verb: true}));
+      break;
+    }
+  }
+  return () => {};
+}
+const wait = ms => new Promise(r => setTimeout(r, ms));
+
+/* ---------------- pictures ----------------
+   The newest sets' pictures are on images.scrydex.com, which blocks sites that ask too often, so
+   those go through the Pack Rip server (/img/...), which saves each one the first time. If a
+   picture still won't load, a placeholder with the card's name shows while it keeps retrying. */
+const SCRYDEX = "https://images.scrydex.com/";
+function pic(u){ return u && u.startsWith(SCRYDEX) && SERVER ? SERVER + "/img/" + u.slice(SCRYDEX.length) : (u || ""); }
+function placeholder(name){
+  const x = String(name || "").replace(/[&<>"]/g, ch => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[ch]));
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 245 342">'
+    + '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3a3f6b"/><stop offset="1" stop-color="#171a2e"/></linearGradient></defs>'
+    + '<rect x="4" y="4" width="237" height="334" rx="12" fill="url(#g)" stroke="#f1c232" stroke-width="8"/>'
+    + '<circle cx="122" cy="140" r="44" fill="none" stroke="#ffffff38" stroke-width="8"/><path d="M78 140h88" stroke="#ffffff38" stroke-width="8"/>'
+    + '<circle cx="122" cy="140" r="13" fill="#171a2e" stroke="#ffffff38" stroke-width="6"/>'
+    + '<text x="122" y="240" font-family="Segoe UI,sans-serif" font-size="' + (x.length > 16 ? 14 : 19) + '" font-weight="700" fill="#fff" text-anchor="middle">' + x + '</text>'
+    + '<text x="122" y="268" font-family="Segoe UI,sans-serif" font-size="12" fill="#9aa0c7" text-anchor="middle">picture loading…</text></svg>';
+  return "data:image/svg+xml," + encodeURIComponent(svg);
+}
+// Any picture that fails: show the placeholder (or, for a set logo, the set's name), then keep
+// trying the real picture in the background and swap it in the moment it works.
+document.addEventListener("error", e => {
+  const img = e.target;
+  if(!(img instanceof HTMLImageElement) || img.dataset.real || img.src.startsWith("data:")) return;
+  const real = img.src;
+  img.dataset.real = real;
+  if(img.classList.contains("lg")){
+    img.style.visibility = "hidden";
+    const n = document.createElement("div"); n.className = "sn"; n.textContent = img.alt;
+    img.after(n);
+  } else img.src = placeholder(img.alt);
+  let n = 0;
+  const retry = () => {
+    if(!img.isConnected || n >= 8) return;
+    const t = new Image();
+    t.onload = () => {
+      img.src = t.src; img.style.visibility = "";
+      if(img.nextElementSibling && img.nextElementSibling.classList.contains("sn") && img.classList.contains("lg")) img.nextElementSibling.remove();
+    };
+    t.onerror = () => { n++; setTimeout(retry, Math.min(60000, 3000 * n * n)); };
+    t.src = real + (real.includes("?") ? "&" : "?") + "r=" + n;
+  };
+  setTimeout(retry, 2500);
+}, true);
+
+/* ---------------- card tiles + zoom ---------------- */
+function cardTile(c, o){
+  o = o || {};
+  const cls = "card" + (c.t >= 4 ? " t" + c.t : "") + (o.miss ? " miss" : "");
+  return '<button class="' + cls + '" onclick="zoomCard(\'' + esc(c.id) + '\',' + (o.qty || 0) + ',' + (c.rh ? 1 : 0) + ',\'' + esc(c.rv || "") + '\')">'
+    + '<img src="' + esc(pic(o.big ? (c.l || c.s) : c.s)) + '" alt="' + esc(c.n) + '"' + (o.big ? '' : ' loading="lazy"') + '>'
+    + (o.showNew && c.new ? '<span class="newb">NEW</span>' : '')
+    + (o.qty > 1 ? '<span class="qty">×' + o.qty + '</span>' : '')
+    + '<div class="cap"><span>' + esc(o.label || c.n) + '</span>' + priceHTML(c) + '</div></button>';
+}
+function zoomCard(id, qty, rh, rv){
+  const c = cardIndex[id] || (ST && ST.pack && ST.pack.find(x => x.id === id));
+  if(!c) return;
+  const s = SETMAP[setOf(id)];
+  const shown = Object.assign({}, c, {rh: rh ? 1 : 0, rv: rv || ""});
+  $("modal").innerHTML = '<div class="zoom"><img src="' + esc(pic(c.l || c.s)) + '" alt="' + esc(c.n) + '">'
+    + '<div class="meta"><b>' + esc(c.n) + '</b><br>' + esc(c.r || "") + rhName(shown) + ' · ' + esc(s ? s.name : "") + ' #' + esc(c.num)
+    + '<br>' + priceHTML(c) + (c.p == null ? '' : c.e ? ' <span class="note">estimate</span><br><span class="note" style="display:inline-block;max-width:340px">'
+        + esc(EST_WHY[c.e].replace("{r}", c.r || "similar")) + '</span>' : ' <span class="note">market price (TCGplayer)</span>')
+    + (qty ? '<br>Owned: ' + qty : '') + '</div></div>';
+  $("modal").classList.remove("hide");
+  $("modal").querySelector(".zoom").onclick = closeModal;
+}
+
+/* ---------------- collections (yours, or a friend's) ---------------- */
+async function getPlayer(name){
+  if(!name){ if(!ME) return null; ME = await api("/me"); return ME; }
+  return api("/player/" + encodeURIComponent(name));
+}
+const setsBase = name => name ? "#player/" + encodeURIComponent(name) + "/set/" : "#set/";
+async function showCollection(name){
+  const m = $("main");
+  if(!name && !ME){ m.innerHTML = offlineBanner() + '<h1>My collection</h1>' + needSignIn("start your collection"); return; }
+  m.innerHTML = offlineBanner() + '<div class="spin"></div>';
+  let p;
+  try{ p = await getPlayer(name); await loadSetsFor(Object.keys(p.cards)); }
+  catch(e){ m.innerHTML = offlineBanner() + '<div class="empty">' + esc(e.message) + '</div>'; return; }
+  const mine = !name || (ME && name.toLowerCase() === ME.name.toLowerCase());
+  const ids = Object.keys(p.cards);
+  const copies = ids.reduce((a, id) => a + p.cards[id], 0);
+  const value = ids.reduce((a, id) => a + ((cardIndex[id] || {}).p || 0) * p.cards[id], 0);
+  const guessed = ids.some(id => (cardIndex[id] || {}).e);
+  const perSet = {};
+  ids.forEach(id => { const s = packSetOf(id); perSet[s] = (perSet[s] || 0) + 1; });
+  const setList = Object.keys(perSet).filter(s => SETMAP[s] && SETMAP[s].pack).sort((a, b) => (SETMAP[b].date || "").localeCompare(SETMAP[a].date || ""));
+  const top = ids.map(id => cardIndex[id]).filter(Boolean).sort((a, b) => (b.t - a.t) || ((b.p || 0) - (a.p || 0))).slice(0, 12);
+  const friend = !mine && ME && ME.friends.some(f => f.toLowerCase() === p.name.toLowerCase());
+  m.innerHTML = offlineBanner()
+    + (mine ? '' : '<button class="back" onclick="location.hash=\'#friends\'">‹ Friends</button>')
+    + '<div class="head"><h1>' + (mine ? "My collection" : esc(p.name) + "'s collection") + '</h1>'
+    + (!mine && ME ? '<button class="btn small" onclick="friendToggle(\'' + esc(p.name) + '\',' + !friend + ')">' + (friend ? "Remove friend" : "+ Add friend") + '</button>' : '')
+    + '</div>'
+    + '<div class="stats">'
+    + stat(ids.length.toLocaleString(), "different cards") + stat(copies.toLocaleString(), "cards in total")
+    + stat(p.packs.toLocaleString(), "packs opened") + stat((guessed ? "~" : "") + money(value), guessed ? "collection value (some estimated)" : "collection value") + '</div>'
+    + (ids.length ? '' : '<div class="empty">' + (mine ? 'No cards yet. <a href="#open">Rip your first pack!</a>' : "No cards yet.") + '</div>')
+    + (top.length ? '<h2>Best pulls</h2><div class="cards">' + top.map(c => cardTile(c, {qty: p.cards[c.id]})).join("") + '</div>' : '')
+    + (setList.length ? '<h2>Sets</h2><div class="setrows">' + setList.map(sid => {
+        const s = SETMAP[sid], have = perSet[sid];
+        const total = ((SETCARDS[sid] || []).length || s.total) + (BONUS[sid] ? (SETCARDS[BONUS[sid]] || []).length || (SETMAP[BONUS[sid]] || {}).total || 0 : 0);
+        return '<button class="setrow" onclick="location.hash=\'' + setsBase(name) + esc(sid) + '\'">'
+          + '<img src="' + esc(pic(s.logo)) + '" alt="" loading="lazy"><div class="info"><div class="nm">' + esc(s.name) + '</div>'
+          + '<div class="note">' + have + ' / ' + total + ' cards</div><div class="prog"><i style="width:' + Math.min(100, have / total * 100) + '%"></i></div></div></button>';
+      }).join("") + '</div>' : '');
+}
+const stat = (v, k) => '<div class="stat"><div class="v">' + v + '</div><div class="k">' + k + '</div></div>';
+
+let binderShow = "all";
+async function showBinder(name, sid){
+  const m = $("main");
+  if(!name && !ME){ m.innerHTML = needSignIn("see your collection"); return; }
+  // a bonus mini-set opens its main set's binder, which includes the bonus cards
+  if(PARENT[sid]){ location.replace((name ? "#player/" + encodeURIComponent(name) + "/set/" : "#set/") + PARENT[sid]); return; }
+  const s = SETMAP[sid];
+  if(!s){ m.innerHTML = '<div class="empty">That set wasn\'t found.</div>'; return; }
+  m.innerHTML = '<div class="spin"></div>';
+  let p, cards;
+  try{
+    let more;
+    [p, cards, more] = await Promise.all([getPlayer(name), setCards(sid), BONUS[sid] ? setCards(BONUS[sid]).catch(() => []) : []]);
+    cards = cards.concat(more);
+  }
+  catch(e){ m.innerHTML = offlineBanner() + '<div class="empty">' + esc(e.message) + '</div>'; return; }
+  cards.forEach(c => cardIndex[c.id] = c);
+  const have = cards.filter(c => p.cards[c.id]);
+  const val = have.reduce((a, c) => a + (c.p || 0) * p.cards[c.id], 0);
+  const back = name ? "#player/" + encodeURIComponent(name) : "#collection";
+  m.innerHTML = '<button class="back" onclick="location.hash=\'' + back + '\'">‹ ' + (name ? esc(p.name) + "'s collection" : "My collection") + '</button>'
+    + '<div class="head"><img class="lgbig" src="' + esc(pic(s.logo)) + '" alt=""><div><h1>' + esc(s.name) + '</h1>'
+    + '<div class="note">' + have.length + ' of ' + cards.length + ' cards · worth ' + (have.some(c => c.e) ? "~" : "") + money(val) + '</div></div>'
+    + ((!name || (ME && p.name === ME.name)) && s.pack ? '<button class="btn main" style="margin-left:auto" onclick="openStage(\'' + esc(sid) + '\')">Rip a pack</button>' : '')
+    + '</div><div class="prog" style="margin:14px 0 16px"><i style="width:' + (have.length / cards.length * 100) + '%"></i></div>'
+    + '<div class="chips">' + [["all","All"],["have","Have"],["miss","Missing"]].map(([k, l]) => '<button class="chip' + (binderShow === k ? " on" : "") + '" data-k="' + k + '">' + l + '</button>').join("") + '</div>'
+    + '<div class="cards" id="bgrid"></div>';
+  const draw = () => {
+    const list = cards.filter(c => binderShow === "all" || (binderShow === "have") === !!p.cards[c.id]);
+    $("bgrid").innerHTML = list.map(c => cardTile(c, {qty: p.cards[c.id] || 0, miss: !p.cards[c.id], label: "#" + c.num + " " + c.n})).join("")
+      || '<div class="empty" style="grid-column:1/-1">Nothing here.</div>';
+  };
+  m.querySelectorAll(".chip").forEach(b => b.onclick = () => { binderShow = b.dataset.k; m.querySelectorAll(".chip").forEach(x => x.classList.toggle("on", x === b)); draw(); });
+  draw();
+}
+
+/* ---------------- friends ---------------- */
+function avatar(name){
+  return '<span class="av" style="background:hsl(' + hueOf(name.toLowerCase()) + ' 60% 45%)">' + esc(name[0].toUpperCase()) + '</span>';
+}
+async function showFriends(){
+  const m = $("main");
+  if(!ME){ m.innerHTML = offlineBanner() + '<h1>Friends</h1>' + needSignIn("add friends and see their collections"); return; }
+  m.innerHTML = offlineBanner() + '<h1>Friends</h1><p class="sub">Add friends by their Pack Rip name to see what they\'ve pulled.</p>'
+    + '<form class="tools" onsubmit="event.preventDefault();addFriend()"><input class="search" id="fname" maxlength="16" placeholder="Friend\'s name">'
+    + '<button class="btn main">Add friend</button></form><div class="err" id="ferr"></div>'
+    + '<div class="people" id="flist"></div>';
+  drawFriends();
+}
+async function drawFriends(){
+  const box = $("flist");
+  if(!ME.friends.length){ box.innerHTML = '<div class="empty" style="grid-column:1/-1">No friends yet. Ask them for their Pack Rip name!</div>'; return; }
+  box.innerHTML = ME.friends.map(f => '<button class="person" onclick="location.hash=\'#player/' + encodeURIComponent(f) + '\'">' + avatar(f)
+    + '<div class="info"><div class="nm">' + esc(f) + '</div><div class="note" id="fi-' + esc(f.toLowerCase()) + '">…</div></div>›</button>').join("");
+  ME.friends.forEach(async f => {
+    try{
+      const p = await api("/player/" + encodeURIComponent(f));
+      const el = document.getElementById("fi-" + f.toLowerCase());
+      if(el) el.textContent = Object.keys(p.cards).length + " cards · " + p.packs + " packs" + (p.best ? " · best: " + p.best.n : "");
+    }catch(e){}
+  });
+}
+async function addFriend(){
+  const n = $("fname").value.trim();
+  if(!n) return;
+  try{ ME.friends = (await api("/friends/add", {name: n})).friends; $("fname").value = ""; $("ferr").textContent = ""; drawFriends(); }
+  catch(e){ $("ferr").textContent = e.message; }
+}
+async function friendToggle(name, add){
+  try{ ME.friends = (await api("/friends/" + (add ? "add" : "remove"), {name})).friends; route(); }
+  catch(e){ alert(e.message); }
+}
+
+/* ---------------- big pulls feed ---------------- */
+async function showPulls(){
+  const m = $("main");
+  m.innerHTML = offlineBanner() + '<h1>Big pulls</h1><p class="sub">The best cards anyone on Pack Rip has pulled lately.</p><div class="spin"></div>';
+  let feed;
+  try{ feed = (await api("/feed")).feed; }
+  catch(e){ m.innerHTML = offlineBanner() + '<h1>Big pulls</h1><div class="empty">' + esc(e.message) + '</div>'; return; }
+  // today's TCGplayer price, not the one saved when it was pulled
+  try{ await loadSetsFor(feed.map(f => f.card.id)); }catch(e){}
+  feed.forEach(f => {
+    const now = cardIndex[f.card.id];
+    if(now){ f.card = Object.assign({}, f.card, {p: now.p, e: now.e}); delete f.card.rh; }
+    else cardIndex[f.card.id] = Object.assign({num: f.card.id.split("-").pop()}, f.card);
+  });
+  m.querySelector(".spin").outerHTML = feed.length ? '<div class="cards feed">' + feed.map(f => '<div>' + cardTile(f.card)
+    + '<div class="who"><a href="#player/' + encodeURIComponent(f.who) + '">' + esc(f.who) + '</a> pulled it from ' + (f.g ? '<b class="godtag" style="font-size:13px">a ' + (f.g === "god" ? "GOD PACK" : "demi-god pack") + '</b> of ' : '') + esc(f.set) + ' · ' + ago(f.at) + '</div></div>').join("") + '</div>'
+    : '<div class="empty">No big pulls yet. Go rip some packs!</div>';
+}
+
+/* ---------------- PokeBux ---------------- */
+// 1 PokeBux = $1. Packs cost their TCGplayer pack price; you start with 100, get 10 a day, and your
+// 3 most valuable Pokemon earn more every second (the Earn page). The server keeps the balance (ME.bux).
+const bux = n => Number(n || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const COIN = '<span class="coin">P</span>';
+function toast(msg){
+  document.querySelectorAll(".toast").forEach(t => t.remove());
+  const t = document.createElement("div"); t.className = "toast"; t.innerHTML = msg;
+  document.body.appendChild(t); setTimeout(() => t.remove(), 3700);
+}
+function dailyToast(me){ if(me && me.bonus) toast(COIN + " +" + me.bonus + " PokéBux — your daily bonus!"); }
+
+/* ---------------- earning ----------------
+   Your 3 most valuable Pokemon make PokeBux every second: EARN.per (0.0025 / 450) a second per $1 they're
+   worth, added together. They keep earning while you're away, up to 2 hours - then it's full and
+   you claim it here to start again. The server works out and pays the amount (/earn, /earn/claim);
+   this page just shows the count going up. */
+let EARN = null, EARN_TIMER = 0, EARN_SKEW = 0;
+async function showEarn(){
+  const m = $("main");
+  if(!ME){ m.innerHTML = offlineBanner() + '<h1>Earn</h1>' + needSignIn("start earning PokéBux"); return; }
+  m.innerHTML = offlineBanner() + '<div class="spin"></div>';
+  try{ EARN = await api("/earn"); }
+  catch(e){ m.innerHTML = offlineBanner() + '<div class="empty">' + esc(e.message) + '</div>'; return; }
+  EARN_SKEW = Date.now() / 1000 - EARN.now;
+  drawEarn();
+}
+function drawEarn(){
+  const m = $("main"), e = EARN;
+  e.top.forEach(c => cardIndex[c.id] = cardIndex[c.id] || c);
+  m.innerHTML = offlineBanner()
+    + '<div class="head"><h1>Earn</h1></div>'
+    + '<p class="sub">Your 3 most valuable Pokémon make ' + COIN + ' PokéBux every second — <b>' + (e.per * 3600).toFixed(3) + ' PokéBux an hour for every $1</b> they\'re worth. '
+    + 'They keep earning while you\'re away, for up to 2 hours. Claim it to keep them going!</p>'
+    + (e.top.length
+      ? '<div class="earners">' + e.top.map((c, i) => '<div class="earner"><span class="medal">#' + (i + 1) + '</span>'
+          + '<img src="' + esc(pic(c.l || c.s)) + '" alt="' + esc(c.n) + '" onclick="zoomCard(\'' + esc(c.id) + '\',0,0)" style="cursor:zoom-in">'
+          + '<div class="en">' + esc(c.n) + '</div><div class="ev">' + (c.e ? "~" : "") + money(c.p) + '</div>'
+          + '<div class="er">+' + (e.per * 3600 * (c.p || 0)).toFixed(e.per * 3600 * (c.p || 0) < 1 ? 3 : 2) + ' an hour</div></div>').join("") + '</div>'
+      : '<div class="empty">You don\'t have any Pokémon yet. <a href="#open">Rip a pack</a> — your best 3 start earning right away.</div>')
+    + '<div class="earnbox"><div class="ecount" id="ecount">' + COIN + '0.0000</div>'
+    + '<div class="erate">+' + bux(e.rate * 3600) + ' PokéBux an hour · ' + e.rate.toFixed(6) + ' a second</div>'
+    + '<div class="ebar" id="ebar"><i id="ebari"></i></div><div class="efull" id="efull"></div>'
+    + '<button class="btn claim" id="claimbtn" onclick="claimEarn()">Claim</button>'
+    + '<div class="note" style="margin-top:12px">You have ' + bux(ME.bux) + ' PokéBux</div></div>';
+  clearInterval(EARN_TIMER);
+  EARN_TIMER = setInterval(tickEarn, 100);
+  tickEarn();
+}
+function earnNow(){
+  const e = EARN, secs = Math.min(e.cap, Math.max(0, Date.now() / 1000 - EARN_SKEW - e.since));
+  return {secs, amount: e.rate * secs, full: secs >= e.cap};
+}
+function hm(sec){
+  sec = Math.max(0, Math.round(sec));
+  const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60;
+  return h ? h + "h " + m + "m" : m ? m + "m " + s + "s" : s + "s";
+}
+function tickEarn(){
+  if(!$("ecount") || !EARN){ clearInterval(EARN_TIMER); return; }
+  const n = earnNow();
+  $("ecount").innerHTML = COIN + n.amount.toFixed(EARN.rate < .01 ? 6 : 4);
+  $("ebari").style.width = (n.secs / EARN.cap * 100) + "%";
+  $("ebar").classList.toggle("full", n.full);
+  $("efull").className = "efull" + (n.full ? " full" : "");
+  $("efull").textContent = n.full ? "FULL! Your Pokémon stopped earning — claim to start again." : "Full in " + hm(EARN.cap - n.secs);
+  const b = $("claimbtn");
+  b.disabled = n.amount < 0.01;
+  b.classList.toggle("ready", n.full);
+  b.textContent = n.amount >= 0.01 ? "Claim " + bux(n.amount) : "Claim";
+}
+async function claimEarn(){
+  const b = $("claimbtn");
+  if(!b || b.disabled) return;
+  b.disabled = true;
+  try{
+    const r = await api("/earn/claim", {});
+    ME.bux = r.bux; drawWho();
+    EARN = r; EARN_SKEW = Date.now() / 1000 - r.now;
+    drawEarn();
+    if(r.claimed > 0){ toast(COIN + " +" + bux(r.claimed) + " PokéBux claimed!"); coinShower(); sfx("ding"); }
+  }catch(e){ toast(esc(e.message)); b.disabled = false; }
+}
+function coinShower(){
+  for(let i = 0; i < 30; i++){
+    const c = document.createElement("span"); c.className = "coin coinfall"; c.textContent = "P";
+    c.style.left = (5 + Math.random() * 90) + "vw";
+    c.style.transform = "scale(" + (1 + Math.random() * 1.2) + ")";
+    c.style.transition = "top " + (1.1 + Math.random()) + "s cubic-bezier(.3,.7,.5,1), opacity .4s " + (1.3 + Math.random()) + "s";
+    document.body.appendChild(c);
+    requestAnimationFrame(() => requestAnimationFrame(() => { c.style.top = (55 + Math.random() * 40) + "vh"; c.style.opacity = "0"; }));
+    setTimeout(() => c.remove(), 3200);
+  }
+}
+
+/* ---------------- wheels ----------------
+   Archer asked for "a wheel you can spin out of every pokemon" and one with 10, 5, 25, 30, 15, 20.
+   A canvas wheel: slices are drawn once to an off-screen canvas, then rotated each frame. The
+   Pokemon list (all 1,025) and artwork come from PokeAPI; the list is remembered in localStorage. */
+const NUMS = [10, 5, 25, 30, 15, 20];
+const NUM_COLORS = ["#ff5f5f", "#ffb84d", "#5fd38a", "#4da3ff", "#b388ff", "#ff5fd2"];
+let MONS = null;
+const WHEELS = {};
+const MON_NAMES = {"nidoran-f": "Nidoran♀", "nidoran-m": "Nidoran♂", "mr-mime": "Mr. Mime", "mime-jr": "Mime Jr.",
+  "mr-rime": "Mr. Rime", "ho-oh": "Ho-Oh", "porygon-z": "Porygon-Z", "type-null": "Type: Null", "jangmo-o": "Jangmo-o",
+  "hakamo-o": "Hakamo-o", "kommo-o": "Kommo-o", "farfetchd": "Farfetch'd", "sirfetchd": "Sirfetch'd", "flabebe": "Flabébé",
+  "tapu-koko": "Tapu Koko", "tapu-lele": "Tapu Lele", "tapu-bulu": "Tapu Bulu", "tapu-fini": "Tapu Fini", "wo-chien": "Wo-Chien",
+  "chien-pao": "Chien-Pao", "ting-lu": "Ting-Lu", "chi-yu": "Chi-Yu"};
+const monName = n => MON_NAMES[n] || n.split("-").map(w => w[0].toUpperCase() + w.slice(1)).join(" ");
+const artwork = id => "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/" + id + ".png";
+
+async function loadMons(){
+  if(MONS) return MONS;
+  try{ const saved = JSON.parse(store("prMons") || "null"); if(saved && saved.length >= 1025){ MONS = saved; return MONS; } }catch(e){}
+  const r = await fetch("https://pokeapi.co/api/v2/pokemon-species?limit=2000");
+  const d = await r.json();
+  MONS = d.results.map(x => monName(x.name));
+  store("prMons", JSON.stringify(MONS));
+  return MONS;
+}
+// Two tabs (Archer: "make it so that they're in different tabs"): #wheel = Pokemon, #numbers = numbers.
+function wheelSection(key, title, note){
+  return '<div class="wsec wone"><div class="note">' + note + '</div>'
+    + '<div class="wwrap"><div class="wptr"></div><canvas id="wc-' + key + '"></canvas><div class="whub"></div></div>'
+    + '<div class="wnow" id="wnow-' + key + '"></div><button class="btn wspin" id="wb-' + key + '" onclick="spinWheel(\'' + key + '\')">SPIN</button>'
+    + '<div class="wres" id="wr-' + key + '"></div></div>';
+}
+async function showWheel(){
+  const m = $("main");
+  m.innerHTML = '<h1>Pokémon Wheel</h1><p class="sub">Spin for a random Pokémon — any of all 1,025, from Bulbasaur to Pecharunt.</p>'
+    + wheelSection("mon", "Pokémon wheel", "Every Pokémon ever");
+  $("wb-mon").disabled = true; $("wnow-mon").textContent = "Loading every Pokémon…";
+  try{
+    const list = await loadMons();
+    if(!$("wc-mon")) return;
+    makeWheel("mon", list.map((n, i) => ({label: n, color: "hsl(" + Math.round(i / list.length * 360) + " 80% " + (i % 2 ? 52 : 60) + "%)"})));
+    $("wb-mon").disabled = false; $("wnow-mon").textContent = "";
+  }catch(e){ $("wnow-mon").textContent = "Couldn't load the Pokémon list — try again later."; }
+}
+function showNumberWheel(){
+  $("main").innerHTML = '<h1>Number Wheel</h1><p class="sub">Spin for 10, 5, 25, 30, 15 or 20.</p>'
+    + wheelSection("num", "Number wheel", "Every number has the same chance");
+  makeWheel("num", NUMS.map((n, i) => ({label: String(n), color: NUM_COLORS[i]})));
+}
+// Every pack with a card of this Pokemon (server: /pokemon/<name>) and what the card looks like in it.
+async function showMonPacks(name){
+  let r;
+  try{ r = await api("/pokemon/" + encodeURIComponent(name)); }
+  catch(e){ if($("wpacks")) $("wpacks").innerHTML = '<div class="note">' + esc(e.message) + '</div>'; return; }
+  const box = $("wpacks");
+  if(!box) return;
+  if(!r.packs.length){ box.innerHTML = '<div class="note">' + esc(name) + ' isn\'t on a card in any pack yet.</div>'; return; }
+  const n = r.packs.reduce((a, p) => a + p.cards.length, 0);
+  box.innerHTML = '<h3>' + esc(name) + ' is in ' + r.packs.length + ' pack' + (r.packs.length > 1 ? "s" : "") + '</h3>'
+    + '<div class="note">' + n + ' different card' + (n > 1 ? "s" : "") + ', newest packs first</div>'
+    + r.packs.map(p => {
+      p.cards.forEach(c => cardIndex[c.id] = cardIndex[c.id] || c);
+      const st = SETMAP[p.id] || {};
+      const pic2 = p.photo ? 'style="background-image:url(\'' + esc(packPhoto(p)) + '\')"'
+        : 'class="wpk logo" style="background-image:url(\'' + esc(pic(st.logo || "")) + '\')"';
+      return '<div class="wprow"><div class="wpk" ' + pic2 + '></div>'
+        + '<div class="wpinfo"><b>' + esc(p.name) + '</b>' + esc(p.series) + ' · ' + esc((p.date || "").slice(0, 4))
+        + (p.price ? '<br>' + COIN + ' ' + bux(p.price.p) + ' a pack<br><button class="btn small main" onclick="openStage(\'' + esc(p.id) + '\')">Rip it</button>' : '<br>Sold out')
+        + '</div><div class="wpcards">' + p.cards.map(c => '<button onclick="zoomCard(\'' + esc(c.id) + '\',0,0)">'
+          + '<img src="' + esc(pic(c.s)) + '" alt="' + esc(c.n) + '" loading="lazy"><span>' + esc(c.n) + '</span>'
+          + '<span>' + esc(c.r || "") + '</span></button>').join("") + '</div></div>';
+    }).join("");
+}
+function makeWheel(key, slices){
+  const cv = $("wc-" + key), size = 800;
+  cv.width = size; cv.height = size;
+  // the slices, drawn once; slice i is centred at angle i*a from the top, clockwise
+  const off = document.createElement("canvas"); off.width = size; off.height = size;
+  const x = off.getContext("2d"), n = slices.length, a = Math.PI * 2 / n, R = size / 2;
+  x.translate(R, R);
+  slices.forEach((sl, i) => {
+    const mid = -Math.PI / 2 + i * a;
+    x.beginPath(); x.moveTo(0, 0); x.arc(0, 0, R, mid - a / 2, mid + a / 2); x.closePath();
+    x.fillStyle = sl.color; x.fill();
+    if(n <= 40){
+      x.strokeStyle = "#0006"; x.lineWidth = 3; x.stroke();
+      x.save(); x.rotate(mid); x.fillStyle = "#fff"; x.font = "900 " + (n <= 8 ? 72 : 34) + "px system-ui,sans-serif";
+      x.textAlign = "right"; x.textBaseline = "middle"; x.shadowColor = "#0009"; x.shadowBlur = 8;
+      x.fillText(sl.label, R - 36, 0); x.restore();
+    }
+  });
+  if(n > 40){
+    // too many slices to label: rings for depth instead
+    const g = x.createRadialGradient(0, 0, R * .1, 0, 0, R);
+    g.addColorStop(0, "#ffffff55"); g.addColorStop(.6, "#ffffff00"); g.addColorStop(1, "#00000055");
+    x.fillStyle = g; x.beginPath(); x.arc(0, 0, R, 0, Math.PI * 2); x.fill();
+  }
+  WHEELS[key] = {cv, off, slices, rot: 0, spinning: false};
+  drawWheel(key);
+}
+function drawWheel(key){
+  const w = WHEELS[key], x = w.cv.getContext("2d"), S = w.cv.width;
+  x.clearRect(0, 0, S, S);
+  x.save(); x.translate(S / 2, S / 2); x.rotate(w.rot); x.drawImage(w.off, -S / 2, -S / 2); x.restore();
+}
+function wheelIndex(w){
+  const n = w.slices.length, a = Math.PI * 2 / n;
+  const r = ((-w.rot) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+  return Math.round(r / a) % n;
+}
+function spinWheel(key){
+  const w = WHEELS[key];
+  if(!w || w.spinning) return;
+  const n = w.slices.length, a = Math.PI * 2 / n, pick = Math.floor(Math.random() * n);
+  // land slice `pick` under the pointer, anywhere inside it, after 6-8 full turns
+  const want = -(pick * a) + (Math.random() - .5) * a * .7;
+  const now = ((w.rot % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+  let delta = ((want - now) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+  delta += Math.PI * 2 * (6 + Math.floor(Math.random() * 3));
+  const start = w.rot, t0 = performance.now(), dur = 5200 + Math.random() * 1200;
+  w.spinning = true; $("wb-" + key).disabled = true; $("wr-" + key).innerHTML = "";
+  let last = wheelIndex(w), lastTick = 0;
+  const step = now2 => {
+    if(!$("wc-" + key)){ w.spinning = false; return; }
+    const k = Math.min(1, (now2 - t0) / dur), e = 1 - Math.pow(1 - k, 4);
+    w.rot = start + delta * e;
+    drawWheel(key);
+    const i = wheelIndex(w);
+    if(i !== last){
+      last = i;
+      if(key === "mon") $("wnow-mon").textContent = "#" + (i + 1) + " " + w.slices[i].label;
+      if(now2 - lastTick > 45){ lastTick = now2; sfx("tick"); }
+    }
+    if(k < 1) return requestAnimationFrame(step);
+    w.spinning = false; $("wb-" + key).disabled = false;
+    wheelDone(key, wheelIndex(w));
+  };
+  requestAnimationFrame(step);
+}
+function wheelDone(key, i){
+  const w = WHEELS[key], r = $("wr-" + key);
+  if(key === "mon"){
+    $("wnow-mon").textContent = "";
+    r.innerHTML = '<div class="pop"><img src="' + artwork(i + 1) + '" alt="' + esc(w.slices[i].label) + '">'
+      + '<div class="wn">' + esc(w.slices[i].label) + '</div><div class="wno">#' + String(i + 1).padStart(4, "0") + '</div></div>'
+      + '<div class="wpacks" id="wpacks"><div class="note">Finding every pack with ' + esc(w.slices[i].label) + '…</div></div>';
+    sfx("reveal", 5);
+    showMonPacks(w.slices[i].label);
+  } else {
+    r.innerHTML = '<div class="pop"><div class="wbig">' + esc(w.slices[i].label) + '</div></div>';
+    sfx("ding");
+  }
+}
+
+/* ---------------- start ---------------- */
+(async function start(){
+  $("mute").textContent = MUTED ? "🔇" : "🔊";
+  SERVER = await findServer();
+  const tasks = [api("/sets").then(r => {
+    SETS = r.sets.filter(s => s.pack);
+    SETMAP = Object.fromEntries(r.sets.map(s => [s.id, s]));
+  }).catch(() => {})];
+  if(TOKEN) tasks.push(api("/me").then(me => { ME = me; dailyToast(me); }).catch(() => {}));
+  await Promise.all(tasks);
+  drawWho();
+  route();
+})();
+</script>
+</body>
+</html>
