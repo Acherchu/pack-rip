@@ -236,6 +236,8 @@ nav a.psatab.on{background:#c8102e;color:#fff}
 .slab .gn{display:block;font-size:24px;line-height:1;color:#111}
 .slab img{width:100%;aspect-ratio:63/88;border-radius:4%/3%;display:block;box-shadow:0 2px 6px #0004}
 .slab.g10{box-shadow:0 0 0 3px #ffd24d,0 0 26px #ffd24d99,0 10px 26px #000b}
+.psabadge{position:absolute;left:6px;top:6px;background:#c8102e;color:#fff;font-weight:900;font-size:12px;border-radius:6px;
+  padding:2px 7px;box-shadow:0 2px 6px #0008}
 .slabcap{font-size:12px;color:var(--dim);margin-top:5px;display:flex;justify-content:space-between}
 .atpsa{display:flex;gap:12px;flex-wrap:wrap}
 .atpsa .sub1{width:130px;text-align:center;background:var(--panel);border:1px solid #7a2a3d;border-radius:12px;padding:8px}
@@ -1406,15 +1408,17 @@ function cardTile(c, o){
     + (o.qty > 1 ? '<span class="qty">×' + o.qty + '</span>' : '')
     + '<div class="cap"><span>' + esc(o.label || c.n) + '</span>' + priceHTML(c) + '</div></button>';
 }
-function zoomCard(id, qty, rh, rv){
+function zoomCard(id, qty, rh, rv, grade){
   const c = cardIndex[id] || (ST && ST.pack && ST.pack.find(x => x.id === id));
   if(!c) return;
   const s = SETMAP[setOf(id)];
   const shown = Object.assign({}, c, {rh: rh ? 1 : 0, rv: rv || ""});
   $("modal").innerHTML = '<div class="zoom"><img src="' + esc(pic(c.l || c.s)) + '" alt="' + esc(c.n) + '">'
     + '<div class="meta"><b>' + esc(c.n) + '</b><br>' + esc(c.r || "") + rhName(shown) + ' · ' + esc(s ? s.name : "") + ' #' + esc(c.num)
-    + '<br>' + priceHTML(c) + (c.p == null ? '' : c.e ? ' <span class="note">estimate</span><br><span class="note" style="display:inline-block;max-width:340px">'
-        + esc(EST_WHY[c.e].replace("{r}", c.r || "similar")) + '</span>' : ' <span class="note">market price (TCGplayer)</span>')
+    + (grade ? '<br><b style="color:#ff8a9c">PSA ' + grade + '</b> · worth ' + slabPriceHTML(c, grade) + ' <span class="note">(raw ' + money(c.p || 0)
+        + ')</span><br><span class="note" style="display:inline-block;max-width:340px">' + esc(EST_WHY.grade) + '</span>'
+      : '<br>' + priceHTML(c) + (c.p == null ? '' : c.e ? ' <span class="note">estimate</span><br><span class="note" style="display:inline-block;max-width:340px">'
+        + esc(EST_WHY[c.e].replace("{r}", c.r || "similar")) + '</span>' : ' <span class="note">market price (TCGplayer)</span>'))
     + (qty ? '<br>Owned: ' + qty : '') + '</div></div>';
   $("modal").classList.remove("hide");
   $("modal").querySelector(".zoom").onclick = closeModal;
@@ -1454,7 +1458,7 @@ async function showCollection(name){
     + stat(p.packs.toLocaleString(), "packs opened") + stat((guessed ? "~" : "") + money(value), guessed ? "collection value (some estimated)" : "collection value") + '</div>'
     + (ids.length ? '' : '<div class="empty">' + (mine ? 'No cards yet. <a href="#open">Rip your first pack!</a>' : "No cards yet.") + '</div>')
     + ((p.slabs || []).length ? '<h2>Graded by PSA</h2><div class="slabs">' + p.slabs.map(x => cardIndex[x.id]
-        ? '<div>' + slabHTML(cardIndex[x.id], x.grade, "") + '<div class="slabcap"><span>PSA ' + x.grade + '</span>' + slabPriceHTML(cardIndex[x.id], x.grade) + '</div></div>' : '').join("") + '</div>' : '')
+        ? '<div>' + slabHTML(cardIndex[x.id], x.grade, "", ' onclick="zoomCard(\'' + esc(x.id) + '\',0,0,\'\',' + x.grade + ')" style="cursor:zoom-in"') + '<div class="slabcap"><span>PSA ' + x.grade + '</span>' + slabPriceHTML(cardIndex[x.id], x.grade) + '</div></div>' : '').join("") + '</div>' : '')
     + (top.length ? '<h2>Best pulls</h2><div class="cards">' + top.map(c => cardTile(c, {qty: p.cards[c.id]})).join("") + '</div>' : '')
     + (setList.length ? '<h2>Sets</h2><div class="setrows">' + setList.map(sid => {
         const s = SETMAP[sid], have = perSet[sid];
@@ -1483,19 +1487,34 @@ async function showBinder(name, sid){
   }
   catch(e){ m.innerHTML = offlineBanner() + '<div class="empty">' + esc(e.message) + '</div>'; return; }
   cards.forEach(c => cardIndex[c.id] = c);
-  const have = cards.filter(c => p.cards[c.id]);
-  const val = have.reduce((a, c) => a + (c.p || 0) * p.cards[c.id], 0);
+  // graded copies count too: best grade per card, and their graded value
+  const slabsOf = {};
+  (p.slabs || []).forEach(x => (slabsOf[x.id] = slabsOf[x.id] || []).push(x.grade));
+  const owns = c => !!(p.cards[c.id] || slabsOf[c.id]);
+  const have = cards.filter(owns);
+  const val = have.reduce((a, c) => a + (c.p || 0) * (p.cards[c.id] || 0)
+    + (slabsOf[c.id] || []).reduce((b, g) => b + slabValue(c, g), 0), 0);
   const back = name ? "#player/" + encodeURIComponent(name) : "#collection";
   m.innerHTML = '<button class="back" onclick="location.hash=\'' + back + '\'">‹ ' + (name ? esc(p.name) + "'s collection" : "My collection") + '</button>'
     + '<div class="head"><img class="lgbig" src="' + esc(pic(s.logo)) + '" alt=""><div><h1>' + esc(s.name) + '</h1>'
-    + '<div class="note">' + have.length + ' of ' + cards.length + ' cards · worth ' + (have.some(c => c.e) ? "~" : "") + money(val) + '</div></div>'
+    + '<div class="note">' + have.length + ' of ' + cards.length + ' cards · worth ' + (have.some(c => c.e || slabsOf[c.id]) ? "~" : "") + money(val) + '</div></div>'
     + ((!name || (ME && p.name === ME.name)) && s.pack ? '<button class="btn main" style="margin-left:auto" onclick="openStage(\'' + esc(sid) + '\')">Rip a pack</button>' : '')
     + '</div><div class="prog" style="margin:14px 0 16px"><i style="width:' + (have.length / cards.length * 100) + '%"></i></div>'
     + '<div class="chips">' + [["all","All"],["have","Have"],["miss","Missing"]].map(([k, l]) => '<button class="chip' + (binderShow === k ? " on" : "") + '" data-k="' + k + '">' + l + '</button>').join("") + '</div>'
     + '<div class="cards" id="bgrid"></div>';
   const draw = () => {
-    const list = cards.filter(c => binderShow === "all" || (binderShow === "have") === !!p.cards[c.id]);
-    $("bgrid").innerHTML = list.map(c => cardTile(c, {qty: p.cards[c.id] || 0, miss: !p.cards[c.id], label: "#" + c.num + " " + c.n})).join("")
+    const list = cards.filter(c => binderShow === "all" || (binderShow === "have") === owns(c));
+    $("bgrid").innerHTML = list.map(c => {
+      const gs = slabsOf[c.id];
+      if(!gs || p.cards[c.id]) return cardTile(c, {qty: p.cards[c.id] || 0, miss: !owns(c), label: "#" + c.num + " " + c.n})
+        .replace('</button>', gs ? '<span class="psabadge">PSA ' + Math.max(...gs) + '</span></button>' : '</button>');
+      // only graded copies: show the best one's grade and graded value
+      const g = Math.max(...gs);
+      return '<button class="card" onclick="zoomCard(\'' + esc(c.id) + '\',0,0,\'\',' + g + ')">'
+        + '<img src="' + esc(pic(c.s)) + '" alt="' + esc(c.n) + '" loading="lazy"><span class="psabadge">PSA ' + g + '</span>'
+        + (gs.length > 1 ? '<span class="qty">×' + gs.length + '</span>' : '')
+        + '<div class="cap"><span>#' + esc(c.num) + ' ' + esc(c.n) + '</span>' + slabPriceHTML(c, g) + '</div></button>';
+    }).join("")
       || '<div class="empty" style="grid-column:1/-1">Nothing here.</div>';
   };
   m.querySelectorAll(".chip").forEach(b => b.onclick = () => { binderShow = b.dataset.k; m.querySelectorAll(".chip").forEach(x => x.classList.toggle("on", x === b)); draw(); });
@@ -1851,7 +1870,7 @@ function drawPSA(){
     + (PSA.at_psa.length ? '<h2>At PSA</h2><div class="atpsa">' + PSA.at_psa.map(x => '<div class="sub1"><img src="' + esc(pic(x.card.s || "")) + '" alt="">'
         + '<div class="note">' + esc(x.card.n || "") + '</div><div class="cd" data-ready="' + x.ready + '"></div></div>').join("") + '</div>' : '')
     + (PSA.slabs.length ? '<h2>Your graded cards</h2><div class="slabs">' + PSA.slabs.map(x => '<div>' + slabHTML(x.card, x.grade, x.label,
-        ' onclick="zoomCard(\'' + esc(x.card.id) + '\',0,0)" style="cursor:zoom-in"') + '<div class="slabcap"><span>PSA ' + x.grade + '</span>'
+        ' onclick="zoomCard(\'' + esc(x.card.id) + '\',0,0,\'\',' + x.grade + ')" style="cursor:zoom-in"') + '<div class="slabcap"><span>PSA ' + x.grade + '</span>'
         + slabPriceHTML(x.card, x.grade) + '</div></div>').join("") + '</div>' : '')
     + '<h2>Send a card</h2><p class="note">Tap a card to send it. It leaves your collection while it\'s at PSA.</p>'
     + (mine.length ? '<div class="cards sendgrid">' + mine.map(c => cardTile(c, {qty: ME.cards[c.id]})
