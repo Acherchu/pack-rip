@@ -214,6 +214,44 @@ h2{font-size:20px;margin:26px 0 10px}
 .wres .wbig{font-size:72px;font-weight:900;line-height:1;background:linear-gradient(90deg,#ffd24d,#fff6c2,#ffc83d);
   -webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 4px 0 #0008)}
 
+/* ---------- PSA grading (red) ---------- */
+nav a.psatab{color:#ff6b7d}
+nav a.psatab.on{background:#c8102e;color:#fff}
+.psahead{background:linear-gradient(135deg,#6e0616,#c8102e 60%,#e2334d);border-radius:18px;padding:18px 20px;color:#fff;
+  box-shadow:0 10px 30px #c8102e44;margin-bottom:6px}
+.psahead h1{margin:0}
+.psahead .psalogo{display:inline-block;background:#fff;color:#c8102e;font-weight:900;font-style:italic;border-radius:6px;padding:2px 10px;
+  margin-right:10px;font-size:26px;vertical-align:3px}
+.psahead p{margin:6px 0 0;color:#ffe3e7}
+.psa h2{color:#ff8a9c}
+.slabs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px}
+.slab{position:relative;background:linear-gradient(160deg,#f4f6fb,#cdd4e2);border-radius:10px;padding:7px 7px 9px;
+  box-shadow:0 10px 26px #000b,inset 0 0 0 2px #ffffffaa;text-align:left;border:0;width:100%}
+.slab .lab{background:#fff;border:3px solid #c8102e;border-radius:4px;padding:4px 6px;display:grid;grid-template-columns:1fr auto;
+  gap:4px;align-items:center;color:#111;font-size:9px;line-height:1.2;margin-bottom:7px;min-height:44px}
+.slab .ln{min-width:0}
+.slab .ln b{display:block;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.slab .psa{color:#c8102e;font-weight:900;font-style:italic;font-size:11px}
+.slab .lg{text-align:right;font-weight:900;font-size:9px;white-space:nowrap}
+.slab .gn{display:block;font-size:24px;line-height:1;color:#111}
+.slab img{width:100%;aspect-ratio:63/88;border-radius:4%/3%;display:block;box-shadow:0 2px 6px #0004}
+.slab.g10{box-shadow:0 0 0 3px #ffd24d,0 0 26px #ffd24d99,0 10px 26px #000b}
+.slabcap{font-size:12px;color:var(--dim);margin-top:5px;display:flex;justify-content:space-between}
+.atpsa{display:flex;gap:12px;flex-wrap:wrap}
+.atpsa .sub1{width:130px;text-align:center;background:var(--panel);border:1px solid #7a2a3d;border-radius:12px;padding:8px}
+.atpsa img{width:100%;aspect-ratio:63/88;border-radius:5%/3.6%;display:block;filter:grayscale(.6) brightness(.7)}
+.atpsa .cd{font-weight:900;color:#ff8a9c;margin-top:6px;font-variant-numeric:tabular-nums}
+.sendgrid .card{cursor:pointer}
+.sendgrid .card .sendb{position:absolute;left:50%;top:38%;translate:-50% 0;background:#c8102e;color:#fff;font-weight:900;
+  border-radius:999px;padding:6px 12px;font-size:13px;opacity:0;transition:opacity .15s;white-space:nowrap}
+.sendgrid .card:hover .sendb{opacity:1}
+.psareveal{position:fixed;inset:0;z-index:60;background:#000c;display:grid;place-items:center;animation:stagein .3s}
+.psareveal .box{text-align:center;width:min(260px,66vw)}
+.psareveal .slab{animation:slabin .7s cubic-bezier(.2,1.3,.4,1)}
+@keyframes slabin{from{opacity:0;transform:translateY(60px) rotate(-8deg) scale(.7)}}
+.psareveal .gbig{font-size:clamp(40px,12vw,76px);font-weight:900;color:#fff;margin-top:14px;animation:wpop .6s .5s both cubic-bezier(.2,1.4,.4,1)}
+.psareveal .gbig.g10{background:linear-gradient(90deg,#ffd24d,#fff6c2,#ffc83d);-webkit-background-clip:text;background-clip:text;color:transparent}
+
 /* ---------- collection ---------- */
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:10px 0 6px}
 .stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px}
@@ -406,6 +444,7 @@ h2{font-size:20px;margin:26px 0 10px}
       <a href="#collection" data-tab="collection">My collection</a>
       <a href="#friends" data-tab="friends">Friends</a>
       <a href="#earn" data-tab="earn">Earn</a>
+      <a href="#psa" data-tab="psa" class="psatab">PSA</a>
       <a href="#wheel" data-tab="wheel">Pokémon Wheel</a>
       <a href="#numbers" data-tab="numbers">Number Wheel</a>
       <a href="#pulls" data-tab="pulls">Big pulls</a>
@@ -586,6 +625,7 @@ function route(){
   if(a === "player") return showCollection(b);
   if(a === "pulls") return showPulls();
   if(a === "earn") return showEarn();
+  if(a === "psa") return showPSA();
   if(a === "wheel") return showWheel();
   if(a === "numbers") return showNumberWheel();
   return showPacks();
@@ -1390,12 +1430,13 @@ async function showCollection(name){
   if(!name && !ME){ m.innerHTML = offlineBanner() + '<h1>My collection</h1>' + needSignIn("start your collection"); return; }
   m.innerHTML = offlineBanner() + '<div class="spin"></div>';
   let p;
-  try{ p = await getPlayer(name); await loadSetsFor(Object.keys(p.cards)); }
+  try{ p = await getPlayer(name); await loadSetsFor(Object.keys(p.cards).concat((p.slabs || []).map(x => x.id))); }
   catch(e){ m.innerHTML = offlineBanner() + '<div class="empty">' + esc(e.message) + '</div>'; return; }
   const mine = !name || (ME && name.toLowerCase() === ME.name.toLowerCase());
   const ids = Object.keys(p.cards);
   const copies = ids.reduce((a, id) => a + p.cards[id], 0);
-  const value = ids.reduce((a, id) => a + ((cardIndex[id] || {}).p || 0) * p.cards[id], 0);
+  const value = ids.reduce((a, id) => a + ((cardIndex[id] || {}).p || 0) * p.cards[id], 0)
+    + (p.slabs || []).reduce((a, x) => a + ((cardIndex[x.id] || {}).p || 0), 0);
   const guessed = ids.some(id => (cardIndex[id] || {}).e);
   const perSet = {};
   ids.forEach(id => { const s = packSetOf(id); perSet[s] = (perSet[s] || 0) + 1; });
@@ -1411,6 +1452,8 @@ async function showCollection(name){
     + stat(ids.length.toLocaleString(), "different cards") + stat(copies.toLocaleString(), "cards in total")
     + stat(p.packs.toLocaleString(), "packs opened") + stat((guessed ? "~" : "") + money(value), guessed ? "collection value (some estimated)" : "collection value") + '</div>'
     + (ids.length ? '' : '<div class="empty">' + (mine ? 'No cards yet. <a href="#open">Rip your first pack!</a>' : "No cards yet.") + '</div>')
+    + ((p.slabs || []).length ? '<h2>Graded by PSA</h2><div class="slabs">' + p.slabs.map(x => cardIndex[x.id]
+        ? '<div>' + slabHTML(cardIndex[x.id], x.grade, "") + '</div>' : '').join("") + '</div>' : '')
     + (top.length ? '<h2>Best pulls</h2><div class="cards">' + top.map(c => cardTile(c, {qty: p.cards[c.id]})).join("") + '</div>' : '')
     + (setList.length ? '<h2>Sets</h2><div class="setrows">' + setList.map(sid => {
         const s = SETMAP[sid], have = perSet[sid];
@@ -1761,6 +1804,96 @@ function wheelDone(key, i){
     r.innerHTML = '<div class="pop"><div class="wbig">' + esc(w.slices[i].label) + '</div></div>';
     sfx("ding");
   }
+}
+
+/* ---------------- PSA grading ----------------
+   Send a card for 20 PokeBux; it comes back in a PSA slab after GRADE_SECONDS (10 minutes live, 1
+   second on the test server). The server rolls and keeps the grade secret until it's back. */
+let PSA = null, PSA_TIMER = 0, PSA_SKEW = 0;
+function slabHTML(c, grade, label, extra){
+  const st = SETMAP[setOf(c.id)] || {};
+  return '<div class="slab' + (grade === 10 ? " g10" : "") + '"' + (extra || "") + '><div class="lab"><div class="ln"><b>' + esc(c.n || "") + '</b>'
+    + esc(st.name || "") + (c.num ? ' #' + esc(c.num) : '') + '<br><span class="psa">PSA</span></div>'
+    + '<div class="lg">' + esc(label || "") + '<span class="gn">' + grade + '</span></div></div>'
+    + '<img src="' + esc(pic(c.l || c.s || "")) + '" alt="' + esc(c.n || "") + '" loading="lazy"></div>';
+}
+const secsText = n => n >= 60 ? Math.round(n / 60) + " minutes" : n + (n === 1 ? " second" : " seconds");
+async function showPSA(){
+  const m = $("main");
+  if(!ME){ m.innerHTML = '<div class="psa"><div class="psahead"><h1><span class="psalogo">PSA</span>Grading</h1></div>' + needSignIn("send cards to PSA") + '</div>'; return; }
+  m.innerHTML = '<div class="spin"></div>';
+  try{
+    PSA = await api("/psa"); PSA_SKEW = Date.now() / 1000 - PSA.now;
+    ME = await api("/me"); drawWho();
+    await loadSetsFor(Object.keys(ME.cards));
+  }catch(e){ m.innerHTML = offlineBanner() + '<div class="empty">' + esc(e.message) + '</div>'; return; }
+  drawPSA();
+  if(PSA.back.length) psaReveal(PSA.slabs.filter(x => PSA.back.includes(x.sid)));
+}
+function drawPSA(){
+  const m = $("main");
+  const mine = Object.keys(ME.cards).map(id => cardIndex[id]).filter(Boolean).sort((a, b) => (b.p || 0) - (a.p || 0));
+  m.innerHTML = '<div class="psa"><div class="psahead"><h1><span class="psalogo">PSA</span>Grading</h1>'
+    + '<p>Send a card to PSA for ' + COIN + ' <b>' + PSA.cost + ' PokéBux</b> and get it back graded in ' + secsText(PSA.seconds) + ', in its own slab. '
+    + 'Will it be a Gem Mint 10?</p></div>'
+    + (PSA.at_psa.length ? '<h2>At PSA</h2><div class="atpsa">' + PSA.at_psa.map(x => '<div class="sub1"><img src="' + esc(pic(x.card.s || "")) + '" alt="">'
+        + '<div class="note">' + esc(x.card.n || "") + '</div><div class="cd" data-ready="' + x.ready + '"></div></div>').join("") + '</div>' : '')
+    + (PSA.slabs.length ? '<h2>Your graded cards</h2><div class="slabs">' + PSA.slabs.map(x => '<div>' + slabHTML(x.card, x.grade, x.label,
+        ' onclick="zoomCard(\'' + esc(x.card.id) + '\',0,0)" style="cursor:zoom-in"') + '<div class="slabcap"><span>PSA ' + x.grade + '</span>'
+        + priceHTML(x.card) + '</div></div>').join("") + '</div>' : '')
+    + '<h2>Send a card</h2><p class="note">Tap a card to send it. It leaves your collection while it\'s at PSA.</p>'
+    + (mine.length ? '<div class="cards sendgrid">' + mine.map(c => cardTile(c, {qty: ME.cards[c.id]})
+        .replace('onclick="zoomCard(', 'onclick="psaSend(\'' + esc(c.id) + '\');return false;" data-z="zoomCard(')
+        .replace('</button>', '<span class="sendb">Send · ' + PSA.cost + '</span></button>')).join("") + '</div>'
+      : '<div class="empty">No cards to send yet. <a href="#open">Rip some packs!</a></div>')
+    + '</div>';
+  clearInterval(PSA_TIMER);
+  PSA_TIMER = setInterval(tickPSA, 250);
+  tickPSA();
+}
+function tickPSA(){
+  const cds = document.querySelectorAll(".atpsa .cd");
+  if(!cds.length || !$("main").querySelector(".psa")){ clearInterval(PSA_TIMER); return; }
+  let due = false;
+  cds.forEach(el => {
+    const left = +el.dataset.ready - (Date.now() / 1000 - PSA_SKEW);
+    if(left <= 0){ el.textContent = "Back!"; due = true; }
+    else el.textContent = left >= 60 ? Math.floor(left / 60) + ":" + String(Math.floor(left % 60)).padStart(2, "0") : Math.ceil(left) + "s";
+  });
+  if(due && !tickPSA.busy){
+    tickPSA.busy = true;
+    api("/psa").then(r => {
+      PSA = r; PSA_SKEW = Date.now() / 1000 - r.now;
+      if(r.back.length){ drawPSA(); psaReveal(r.slabs.filter(x => r.back.includes(x.sid))); }
+    }).catch(() => {}).finally(() => { tickPSA.busy = false; });
+  }
+}
+async function psaSend(cid){
+  const c = cardIndex[cid];
+  if(!c || !confirm("Send " + c.n + " to PSA for " + PSA.cost + " PokéBux?\nYou'll get it back graded in " + secsText(PSA.seconds) + ".")) return;
+  try{
+    const r = await api("/psa/send", {card: cid});
+    PSA = r; PSA_SKEW = Date.now() / 1000 - r.now;
+    ME.bux = r.bux; ME.cards[cid] = (ME.cards[cid] || 1) - 1; if(ME.cards[cid] <= 0) delete ME.cards[cid];
+    drawWho(); drawPSA();
+    toast("📦 " + esc(c.n) + " is on its way to PSA!");
+  }catch(e){ toast(esc(e.message)); }
+}
+// one card at a time: the slab drops in, then the grade
+function psaReveal(list){
+  if(!list.length) return;
+  const x = list[0], rest = list.slice(1);
+  const box = document.createElement("div"); box.className = "psareveal";
+  box.innerHTML = '<div class="box"><div class="note" style="color:#ffb3bf;margin-bottom:10px">Back from PSA</div>'
+    + slabHTML(x.card, x.grade, x.label) + '<div class="gbig' + (x.grade === 10 ? " g10" : "") + '">PSA ' + x.grade + '</div>'
+    + '<div class="note" style="margin-top:6px">' + esc(x.label) + (x.grade === 10 ? " — perfect!" : "") + ' · tap to continue</div></div>';
+  box.onclick = () => { box.remove(); psaReveal(rest); };
+  document.body.appendChild(box);
+  setTimeout(() => {
+    if(x.grade === 10){ sfx("reveal", 7); sfx("godpack"); coinShower(); }
+    else if(x.grade >= 9){ sfx("reveal", 5); }
+    else sfx("ding");
+  }, 500);
 }
 
 /* ---------------- start ---------------- */
