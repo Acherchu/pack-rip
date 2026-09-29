@@ -319,7 +319,7 @@ nav a.psatab.on{background:#c8102e;color:#fff}
   30%{transform:translate(-8px,-5px)}42%{transform:translate(7px,7px)}56%{transform:translate(-4px,3px)}72%{transform:translate(3px,-2px)}}
 
 /* the pack on the stage: tilts toward you, tears along the top */
-.arena .pack{position:absolute;left:5%;width:90%;top:50%;translate:0 -50%;z-index:2;border-radius:10px;
+.arena .pack{position:absolute;left:-2%;width:104%;top:50%;translate:0 -50%;z-index:2;border-radius:10px;
   transform:perspective(900px) rotateX(var(--rx)) rotateY(var(--ry));transition:transform .15s,box-shadow .4s}
 /* the torn strip has to be able to leave the pack - .pack clips everything else (shelf) */
 .arena .pack{overflow:visible}
@@ -342,7 +342,7 @@ nav a.psatab.on{background:#c8102e;color:#fff}
 .pack.real .crimp{display:none}
 .pack.real .glare{opacity:.6}
 .pack.real .flap{box-shadow:0 2px 4px #0005}
-.arena .pack.real{left:12%;width:76%}
+.arena .pack.real{left:-2%;width:104%}  /* wider than the cards, so they fit inside it at almost full size */
 .pack .flap{position:absolute;left:0;right:0;top:0;height:11%;z-index:3;background:inherit;background-size:100% 909%;
   background-position:top;transform-origin:100% 100%;box-shadow:0 2px 6px #0006}
 .pack .flap .crimp{height:64%}
@@ -1058,24 +1058,27 @@ async function openPack(){
   for(const c of res.pack){ ME.cards[c.id] = (ME.cards[c.id] || 0) + 1; cardIndex[c.id] = cardIndex[c.id] || c; }
   ME.packs = res.packs;
   if(res.bux != null){ ME.bux = res.bux; drawWho(); }
-  // The cards come out of the pack: the stack starts shrunk to fit inside the pack, hidden behind its
-  // body (the deck sits under the pack), slides up out of the torn top, then the empty pack drops
-  // away while the cards grow to full size. IN = the scale that fits inside the pack.
-  const deck = $("deck"), IN = .66 * (pk.offsetWidth / ($("arena").offsetWidth * .76));
+  // The cards come out of the pack: the stack starts inside the pack, hidden behind its body (the
+  // deck sits under the pack), slides up out of the torn top, then the empty pack drops away and the
+  // cards settle into place. The stage pack is wider than the cards, so they only need to be a touch
+  // smaller inside it (IN, ~0.94) - Archer didn't like them visibly growing.
+  const deck = $("deck"), IN = Math.min(1, .9 * pk.offsetWidth / $("arena").offsetWidth);
   deck.innerHTML = '<div class="dtilt">' + stackHTML(0) + '</div>';
   pk.classList.remove("glowing");
   sfx("whoosh");
+  // the big pack leaves little room above it, so the pack also slides down as the cards come up
+  const down = Math.round($("arena").offsetHeight * .34), ease = "cubic-bezier(.35,.1,.25,1)";
+  pk.animate([{translate: "0 -50%"}, {translate: "0 calc(-50% + " + down + "px)"}], {duration: 700, easing: ease, fill: "forwards"});
   await deck.animate([
     {transform: "translateY(0) scale(" + IN + ")"},
-    {transform: "translateY(-36%) scale(" + IN + ")"}
-  ], {duration: 700, easing: "cubic-bezier(.35,.1,.25,1)", fill: "forwards"}).finished;
+    {transform: "translateY(-9%) scale(" + IN + ")"}
+  ], {duration: 700, easing: ease, fill: "forwards"}).finished;
   if(!ST) return;
   pk.classList.add("away");
   await deck.animate([
-    {transform: "translateY(-36%) scale(" + IN + ")"},
-    {transform: "translateY(-31%) scale(" + (IN + .06) + ")", offset: .3},
+    {transform: "translateY(-9%) scale(" + IN + ")"},
     {transform: "none"}
-  ], {duration: 620, easing: "cubic-bezier(.3,1.1,.45,1)", fill: "forwards"}).finished;
+  ], {duration: 480, easing: "cubic-bezier(.3,1.05,.45,1)", fill: "forwards"}).finished;
   if(!ST) return;
   deck.classList.add("up");
   deck.getAnimations().forEach(a => a.cancel());
