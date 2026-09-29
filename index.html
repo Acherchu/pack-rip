@@ -346,10 +346,15 @@ nav a.psatab.on{background:#c8102e;color:#fff}
 .pack .flap{position:absolute;left:0;right:0;top:0;height:11%;z-index:3;background:inherit;background-size:100% 909%;
   background-position:top;transform-origin:100% 100%;box-shadow:0 2px 6px #0006}
 .pack .flap .crimp{height:64%}
-/* what's under the strip: the open foil mouth of the pack. Without it the lifted strip sat on the
-   same photo and the top of the pack showed twice while you dragged. */
-.pack .mouth{position:absolute;left:0;right:0;top:0;height:11%;z-index:2;border-radius:inherit;border-bottom-left-radius:0;
-  border-bottom-right-radius:0;background:linear-gradient(#07080e 10%,#262a3a 55%,#aeb3c4 88%,#f2f3f7)}
+/* On the stage the pack is two pieces: the strip (.flap) and the body (.pbody, everything under the
+   tear line). splitPack moves the picture off the pack itself onto both, so when the strip lifts or
+   flies off there's nothing behind it but the background (the pack's own picture used to show
+   there, so the top looked doubled). */
+.pack .pbody{position:absolute;left:0;right:0;top:11%;bottom:0;z-index:0;border-radius:inherit;border-top-left-radius:0;
+  border-top-right-radius:0;background-size:100% 112.36%;background-position:bottom;background-repeat:no-repeat;
+  box-shadow:0 18px 40px #000a,inset 0 0 0 1px #ffffff40}
+.arena .pack.split{background:none;box-shadow:none}
+.arena .pack.split::before,.arena .pack.split .glare,.arena .pack.split .pfoil{top:11%}
 .pack .cut{position:absolute;left:0;right:0;top:11%;height:4px;z-index:4;translate:0 -50%;transition:opacity .3s}
 .pack .cut::before{content:"";position:absolute;left:3%;right:3%;top:1px;border-top:2px dashed #ffffffb0;animation:blink 1.1s ease-in-out infinite}
 @keyframes blink{50%{opacity:.25}}
@@ -822,7 +827,7 @@ function openStage(setId){
     + '<button class="btn small" onclick="closeStage()">✕ Close</button></div>'
     + '<div class="rname" id="rname"></div>'
     + '<div class="arena" id="arena"><div class="rays" id="rays"></div><div class="deck" id="deck"></div>'
-    + packArt(s).replace('<div class="crimp t"></div>', '<div class="mouth"></div><div class="flap"><div class="crimp t"></div></div><div class="cut" id="cut"><i></i></div>')
+    + packArt(s).replace('<div class="crimp t"></div>', '<div class="pbody"></div><div class="flap"><div class="crimp t"></div></div><div class="cut" id="cut"><i></i></div>')
     + '<div class="light" id="light"></div></div>'
     + '<div class="hint later" id="hint"><span class="swipe">👆</span>Swipe across the top to rip it open</div>';
   document.body.style.overflow = "hidden";
@@ -831,7 +836,15 @@ function openStage(setId){
   ar.onpointerdown = pDown; ar.onpointermove = pMove; ar.onpointerup = pUp; ar.onpointercancel = pUp;
   st.onpointermove = e => { if(ST && !ST.drag) tilt(e); };
   st.onpointerleave = () => tilt(null);
+  splitPack(document.querySelector("#arena .pack"));
   packIntro(from);
+}
+// give the pack's picture to its two pieces (strip + body) and take it off the pack itself (see .pbody)
+function splitPack(pk){
+  const cs = getComputedStyle(pk), body = pk.querySelector(".pbody"), flap = pk.querySelector(".flap");
+  [body, flap].forEach(el => { el.style.backgroundImage = cs.backgroundImage; el.style.backgroundColor = cs.backgroundColor; });
+  pk.classList.add("split");
+  pk.style.backgroundImage = "none";
 }
 
 // The chosen pack's entrance: from its spot on the shelf (or out of a burst of light, when there's no
@@ -972,7 +985,7 @@ function tearTo(p){
   ST.prog = p;
   const pk = document.querySelector("#arena .pack");
   $("cut").style.setProperty("--p", p);
-  // the strip peels up from the left, hinged at its right end, showing the foil mouth under it
+  // the strip peels up from the left, hinged at its right end, with only the background behind it
   pk.querySelector(".flap").style.transform = "translateY(" + (-p * 22) + "%) rotate(" + (-p * 9) + "deg)";
   const r = $("cut").getBoundingClientRect();
   if(p > 0) emit(r.left + r.width * p, r.top, 3, ["#fff", "#ffe08a", "#ffb03d"], "spark", .6);
