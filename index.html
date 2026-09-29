@@ -444,7 +444,7 @@ nav a.psatab.on{background:#c8102e;color:#fff}
       <a href="#collection" data-tab="collection">My collection</a>
       <a href="#friends" data-tab="friends">Friends</a>
       <a href="#earn" data-tab="earn">Earn</a>
-      <a href="#psa" data-tab="psa" class="psatab">PSA</a>
+      <a href="#psa" data-tab="psa" class="psatab hide" id="psatab">PSA</a>
       <a href="#wheel" data-tab="wheel">Pokémon Wheel</a>
       <a href="#numbers" data-tab="numbers">Number Wheel</a>
       <a href="#pulls" data-tab="pulls">Big pulls</a>
@@ -625,7 +625,7 @@ function route(){
   if(a === "player") return showCollection(b);
   if(a === "pulls") return showPulls();
   if(a === "earn") return showEarn();
-  if(a === "psa") return showPSA();
+  if(a === "psa") return PSA_ON ? showPSA() : showPacks();
   if(a === "wheel") return showWheel();
   if(a === "numbers") return showNumberWheel();
   return showPacks();
@@ -1570,7 +1570,7 @@ function toast(msg){
 function dailyToast(me){ if(me && me.bonus) toast(COIN + " +" + me.bonus + " PokéBux — your daily bonus!"); }
 
 /* ---------------- earning ----------------
-   Your 3 most valuable Pokemon make PokeBux every second: EARN.per (0.0025 / 450) a second per $1 they're
+   Your 3 most valuable Pokemon make PokeBux every second: EARN.per (0.0025 / 225) a second per $1 they're
    worth, added together. They keep earning while you're away, up to 2 hours - then it's full and
    you claim it here to start again. The server works out and pays the amount (/earn, /earn/claim);
    this page just shows the count going up. */
@@ -1809,7 +1809,7 @@ function wheelDone(key, i){
 /* ---------------- PSA grading ----------------
    Send a card for 20 PokeBux; it comes back in a PSA slab after GRADE_SECONDS (10 minutes live, 1
    second on the test server). The server rolls and keeps the grade secret until it's back. */
-let PSA = null, PSA_TIMER = 0, PSA_SKEW = 0;
+let PSA = null, PSA_TIMER = 0, PSA_SKEW = 0, PSA_ON = false;
 function slabHTML(c, grade, label, extra){
   const st = SETMAP[setOf(c.id)] || {};
   return '<div class="slab' + (grade === 10 ? " g10" : "") + '"' + (extra || "") + '><div class="lab"><div class="ln"><b>' + esc(c.n || "") + '</b>'
@@ -1900,12 +1900,17 @@ function psaReveal(list){
 (async function start(){
   $("mute").textContent = MUTED ? "🔇" : "🔊";
   SERVER = await findServer();
-  const tasks = [api("/sets").then(r => {
+  // PSA grading isn't published yet: its tab only shows when the server has it switched on (a server
+  // started with --psa answers /psa with 401 "sign in"; the live one answers 404). The page code can
+  // be pushed safely - the auto-push hook publishes every change.
+  const psaCheck = fetch(SERVER + "/psa", {cache: "no-store"}).then(r => { PSA_ON = r.status !== 404; }).catch(() => {});
+  const tasks = [psaCheck, api("/sets").then(r => {
     SETS = r.sets.filter(s => s.pack);
     SETMAP = Object.fromEntries(r.sets.map(s => [s.id, s]));
   }).catch(() => {})];
   if(TOKEN) tasks.push(api("/me").then(me => { ME = me; dailyToast(me); }).catch(() => {}));
   await Promise.all(tasks);
+  $("psatab").classList.toggle("hide", !PSA_ON);
   drawWho();
   route();
 })();
