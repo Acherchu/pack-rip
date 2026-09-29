@@ -1058,16 +1058,27 @@ async function openPack(){
   for(const c of res.pack){ ME.cards[c.id] = (ME.cards[c.id] || 0) + 1; cardIndex[c.id] = cardIndex[c.id] || c; }
   ME.packs = res.packs;
   if(res.bux != null){ ME.bux = res.bux; drawWho(); }
-  // the cards slide up out of the pack, then the empty pack drops away
-  const deck = $("deck");
+  // The cards come out of the pack: the stack starts shrunk to fit inside the pack, hidden behind its
+  // body (the deck sits under the pack), slides up out of the torn top, then the empty pack drops
+  // away while the cards grow to full size. IN = the scale that fits inside the pack.
+  const deck = $("deck"), IN = .66 * (pk.offsetWidth / ($("arena").offsetWidth * .76));
   deck.innerHTML = '<div class="dtilt">' + stackHTML(0) + '</div>';
   pk.classList.remove("glowing");
-  deck.classList.add("rise");
   sfx("whoosh");
-  await wait(480);
+  await deck.animate([
+    {transform: "translateY(0) scale(" + IN + ")"},
+    {transform: "translateY(-36%) scale(" + IN + ")"}
+  ], {duration: 700, easing: "cubic-bezier(.35,.1,.25,1)", fill: "forwards"}).finished;
+  if(!ST) return;
   pk.classList.add("away");
+  await deck.animate([
+    {transform: "translateY(-36%) scale(" + IN + ")"},
+    {transform: "translateY(-31%) scale(" + (IN + .06) + ")", offset: .3},
+    {transform: "none"}
+  ], {duration: 620, easing: "cubic-bezier(.3,1.1,.45,1)", fill: "forwards"}).finished;
+  if(!ST) return;
   deck.classList.add("up");
-  await wait(650);
+  deck.getAnimations().forEach(a => a.cancel());
   if(!ST) return;
   sfx("land");
   ST.phase = "cards"; ST.busy = false;
