@@ -321,6 +321,9 @@ nav a.psatab.on{background:#c8102e;color:#fff}
 /* the pack on the stage: tilts toward you, tears along the top */
 .arena .pack{position:absolute;left:5%;width:90%;top:50%;translate:0 -50%;z-index:2;border-radius:10px;
   transform:perspective(900px) rotateX(var(--rx)) rotateY(var(--ry));transition:transform .15s,box-shadow .4s}
+/* the torn strip has to be able to leave the pack - .pack clips everything else (shelf) */
+.arena .pack{overflow:visible}
+.arena .pack .glare{border-radius:inherit}
 .arena .pack .band b{font-size:19px}
 .arena .pack .band span{font-size:11px}
 /* the chosen pack's entrance (packIntro): it flies in spinning, lands with a burst, then floats */
@@ -343,13 +346,19 @@ nav a.psatab.on{background:#c8102e;color:#fff}
 .pack .flap{position:absolute;left:0;right:0;top:0;height:11%;z-index:3;background:inherit;background-size:100% 909%;
   background-position:top;transform-origin:100% 100%;box-shadow:0 2px 6px #0006}
 .pack .flap .crimp{height:64%}
+/* what's under the strip: the open foil mouth of the pack. Without it the lifted strip sat on the
+   same photo and the top of the pack showed twice while you dragged. */
+.pack .mouth{position:absolute;left:0;right:0;top:0;height:11%;z-index:2;border-radius:inherit;border-bottom-left-radius:0;
+  border-bottom-right-radius:0;background:linear-gradient(#07080e 10%,#262a3a 55%,#aeb3c4 88%,#f2f3f7)}
 .pack .cut{position:absolute;left:0;right:0;top:11%;height:4px;z-index:4;translate:0 -50%;transition:opacity .3s}
 .pack .cut::before{content:"";position:absolute;left:3%;right:3%;top:1px;border-top:2px dashed #ffffffb0;animation:blink 1.1s ease-in-out infinite}
 @keyframes blink{50%{opacity:.25}}
 .pack .cut i{position:absolute;left:0;top:0;height:100%;width:calc(var(--p,0) * 100%);background:#fff;border-radius:3px;
   box-shadow:0 0 8px #fff,0 0 18px #ffd84d,0 0 34px #ff9a3d}
-.pack.torn .flap{animation:flapoff .75s cubic-bezier(.2,.7,.4,1) forwards}
-@keyframes flapoff{30%{transform:translate(8%,-60%) rotate(-10deg)}100%{transform:translate(70%,-420%) rotate(55deg);opacity:0}}
+/* the torn strip stays solid while it flies up and away (it used to fade out almost at once) */
+.pack.torn .flap{animation:flapoff .8s cubic-bezier(.25,.6,.45,1) forwards}
+@keyframes flapoff{30%{transform:translate(6%,-150%) rotate(-12deg);opacity:1}75%{opacity:1}
+  100%{transform:translate(60%,-700%) rotate(40deg);opacity:0}}
 .pack.torn .cut{opacity:0}
 .pack.glowing{box-shadow:0 -20px 70px 6px #ffe08acc,0 18px 40px #000a;animation:packbuzz .18s linear infinite}
 @keyframes packbuzz{50%{translate:1px calc(-50% - 1px)}}
@@ -813,7 +822,7 @@ function openStage(setId){
     + '<button class="btn small" onclick="closeStage()">✕ Close</button></div>'
     + '<div class="rname" id="rname"></div>'
     + '<div class="arena" id="arena"><div class="rays" id="rays"></div><div class="deck" id="deck"></div>'
-    + packArt(s).replace('<div class="crimp t"></div>', '<div class="flap"><div class="crimp t"></div></div><div class="cut" id="cut"><i></i></div>')
+    + packArt(s).replace('<div class="crimp t"></div>', '<div class="mouth"></div><div class="flap"><div class="crimp t"></div></div><div class="cut" id="cut"><i></i></div>')
     + '<div class="light" id="light"></div></div>'
     + '<div class="hint later" id="hint"><span class="swipe">👆</span>Swipe across the top to rip it open</div>';
   document.body.style.overflow = "hidden";
@@ -916,8 +925,10 @@ function tilt(e){
 function pDown(e){
   if(!ST || ST.busy || e.button > 0) return;
   if(ST.phase === "pack"){
+    if(ST.autoing) return;
     ST.drag = {x: e.clientX, y: e.clientY, moved: false, from: ST.prog};
     $("arena").setPointerCapture(e.pointerId);
+    settlePack();
     startAsk();
   } else if(ST.phase === "cards" && $("big")){
     ST.drag = {x: e.clientX, y: e.clientY, moved: false, t: performance.now()};
@@ -941,7 +952,8 @@ function pUp(e){
   if(!ST || !ST.drag) return;
   const d = ST.drag, dx = e.clientX - d.x;
   ST.drag = null;
-  if(ST.phase === "pack"){ if(!d.moved || ST.prog > .5) autoTear(); return; }
+  // a tap, or a swipe that got going, finishes the rip; a little nudge lets the strip fall back
+  if(ST.phase === "pack"){ if(!d.moved || ST.prog > .2) autoTear(); else tearBack(); return; }
   if(ST.phase !== "cards") return;
   const b = $("big");
   if(!b) return;
@@ -960,16 +972,35 @@ function tearTo(p){
   ST.prog = p;
   const pk = document.querySelector("#arena .pack");
   $("cut").style.setProperty("--p", p);
-  pk.querySelector(".flap").style.transform = "rotate(" + (-p * 4) + "deg) translateY(" + (-p * 4) + "px)";
+  // the strip peels up from the left, hinged at its right end, showing the foil mouth under it
+  pk.querySelector(".flap").style.transform = "translateY(" + (-p * 22) + "%) rotate(" + (-p * 9) + "deg)";
   const r = $("cut").getBoundingClientRect();
-  emit(r.left + r.width * p, r.top, 3, ["#fff", "#ffe08a", "#ffb03d"], "spark", .6);
+  if(p > 0) emit(r.left + r.width * p, r.top, 3, ["#fff", "#ffe08a", "#ffb03d"], "spark", .6);
   const now = performance.now();
   if(!ST.lastCr || now - ST.lastCr > 45){ ST.lastCr = now; sfx("crinkle", .4 + p * .6); }
   $("hint").textContent = "";
 }
+// stop the pack floating without it jumping: hold it where it is, then ease it to rest
+function settlePack(){
+  const pk = document.querySelector("#arena .pack");
+  if(!pk || !pk.classList.contains("idle")) return;
+  const at = getComputedStyle(pk).translate;
+  pk.classList.remove("idle");
+  pk.animate([{translate: at}, {translate: "0 -50%"}], {duration: 260, easing: "ease-out"});
+}
+function tearBack(){
+  const from = ST.prog, t0 = performance.now();
+  const step = now => {
+    if(!ST || ST.phase !== "pack" || ST.drag || ST.autoing) return;
+    const k = Math.min(1, (now - t0) / 220);
+    tearTo(from * (1 - k) * (1 - k));
+    if(k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
 function autoTear(){
   if(!ST || ST.phase !== "pack" || ST.autoing) return;
-  ST.autoing = true; startAsk();
+  ST.autoing = true; startAsk(); settlePack();
   const from = ST.prog, t0 = performance.now(), dur = 420 * (1 - from) + 80;
   const step = now => {
     if(!ST || ST.phase !== "pack") return;
@@ -984,7 +1015,7 @@ async function finishTear(){
   ST.phase = "opening"; ST.busy = true;
   startAsk();
   const pk = document.querySelector("#arena .pack");
-  pk.classList.remove("idle"); pk.classList.add("torn");
+  settlePack(); pk.classList.add("torn");
   $("light").classList.add("on");
   sfx("rip");
   const r = $("cut").getBoundingClientRect();
