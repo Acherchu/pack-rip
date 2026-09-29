@@ -491,6 +491,7 @@ const priceHTML = c => c.p == null ? '<span class="price">—</span>'
 const EST_WHY = {
   set: "Estimated from TCGplayer market prices of other {r} cards in this set — TCGplayer has no market price for this one yet.",
   rarity: "Estimated from what {r} cards from recent sets sell for on TCGplayer — no TCGplayer market price for this one yet.",
+  grade: EST_GRADE,
   tier: "Estimated from TCGplayer market prices of cards just as rare as a {r} in recent sets — no TCGplayer market price for this one yet.",
   any: "A rough estimate from a typical TCGplayer market price — no TCGplayer market price for this one yet."
 };
@@ -1436,8 +1437,8 @@ async function showCollection(name){
   const ids = Object.keys(p.cards);
   const copies = ids.reduce((a, id) => a + p.cards[id], 0);
   const value = ids.reduce((a, id) => a + ((cardIndex[id] || {}).p || 0) * p.cards[id], 0)
-    + (p.slabs || []).reduce((a, x) => a + ((cardIndex[x.id] || {}).p || 0), 0);
-  const guessed = ids.some(id => (cardIndex[id] || {}).e);
+    + (p.slabs || []).reduce((a, x) => a + slabValue(cardIndex[x.id], x.grade), 0);
+  const guessed = ids.some(id => (cardIndex[id] || {}).e) || (p.slabs || []).length > 0;
   const perSet = {};
   ids.forEach(id => { const s = packSetOf(id); perSet[s] = (perSet[s] || 0) + 1; });
   const setList = Object.keys(perSet).filter(s => SETMAP[s] && SETMAP[s].pack).sort((a, b) => (SETMAP[b].date || "").localeCompare(SETMAP[a].date || ""));
@@ -1453,7 +1454,7 @@ async function showCollection(name){
     + stat(p.packs.toLocaleString(), "packs opened") + stat((guessed ? "~" : "") + money(value), guessed ? "collection value (some estimated)" : "collection value") + '</div>'
     + (ids.length ? '' : '<div class="empty">' + (mine ? 'No cards yet. <a href="#open">Rip your first pack!</a>' : "No cards yet.") + '</div>')
     + ((p.slabs || []).length ? '<h2>Graded by PSA</h2><div class="slabs">' + p.slabs.map(x => cardIndex[x.id]
-        ? '<div>' + slabHTML(cardIndex[x.id], x.grade, "") + '</div>' : '').join("") + '</div>' : '')
+        ? '<div>' + slabHTML(cardIndex[x.id], x.grade, "") + '<div class="slabcap"><span>PSA ' + x.grade + '</span>' + slabPriceHTML(cardIndex[x.id], x.grade) + '</div></div>' : '').join("") + '</div>' : '')
     + (top.length ? '<h2>Best pulls</h2><div class="cards">' + top.map(c => cardTile(c, {qty: p.cards[c.id]})).join("") + '</div>' : '')
     + (setList.length ? '<h2>Sets</h2><div class="setrows">' + setList.map(sid => {
         const s = SETMAP[sid], have = perSet[sid];
@@ -1810,6 +1811,17 @@ function wheelDone(key, i){
    Send a card for 20 PokeBux; it comes back in a PSA slab after GRADE_SECONDS (10 minutes live, 1
    second on the test server). The server rolls and keeps the grade secret until it's back. */
 let PSA = null, PSA_TIMER = 0, PSA_SKEW = 0, PSA_ON = false;
+// A graded copy's value: TCGplayer's raw price x how graded cards of that grade usually sell, with a
+// floor (no free source has graded prices, so it's always an estimate). Same table as the server's.
+const GRADE_VALUE = {10: [4, 15], 9.5: [2.5, 10], 9: [1.5, 6], 8: [1, 4], 7: [.8, 0], 6: [.65, 0], 5: [.5, 0],
+  4: [.4, 0], 3: [.3, 0], 2: [.25, 0], 1: [.2, 0]};
+function slabValue(c, grade){
+  const [times, floor] = GRADE_VALUE[grade] || [1, 0];
+  return Math.round(Math.max(((c && c.p) || 0) * times, floor) * 100) / 100;
+}
+const slabPriceHTML = (c, grade) => '<span class="price est" title="Estimated: a PSA ' + grade + ' usually sells for about '
+  + (GRADE_VALUE[grade] || [1])[0] + '× the raw card (raw: ' + money((c && c.p) || 0) + ' on TCGplayer)">~' + money(slabValue(c, grade)) + '</span>';
+const EST_GRADE = "Estimated from the grade: TCGplayer doesn't list graded prices, so it's the raw card's price times what that PSA grade usually sells for.";
 function slabHTML(c, grade, label, extra){
   const st = SETMAP[setOf(c.id)] || {};
   return '<div class="slab' + (grade === 10 ? " g10" : "") + '"' + (extra || "") + '><div class="lab"><div class="ln"><b>' + esc(c.n || "") + '</b>'
@@ -1840,7 +1852,7 @@ function drawPSA(){
         + '<div class="note">' + esc(x.card.n || "") + '</div><div class="cd" data-ready="' + x.ready + '"></div></div>').join("") + '</div>' : '')
     + (PSA.slabs.length ? '<h2>Your graded cards</h2><div class="slabs">' + PSA.slabs.map(x => '<div>' + slabHTML(x.card, x.grade, x.label,
         ' onclick="zoomCard(\'' + esc(x.card.id) + '\',0,0)" style="cursor:zoom-in"') + '<div class="slabcap"><span>PSA ' + x.grade + '</span>'
-        + priceHTML(x.card) + '</div></div>').join("") + '</div>' : '')
+        + slabPriceHTML(x.card, x.grade) + '</div></div>').join("") + '</div>' : '')
     + '<h2>Send a card</h2><p class="note">Tap a card to send it. It leaves your collection while it\'s at PSA.</p>'
     + (mine.length ? '<div class="cards sendgrid">' + mine.map(c => cardTile(c, {qty: ME.cards[c.id]})
         .replace('onclick="zoomCard(', 'onclick="psaSend(\'' + esc(c.id) + '\');return false;" data-z="zoomCard(')
@@ -1886,7 +1898,8 @@ function psaReveal(list){
   const box = document.createElement("div"); box.className = "psareveal";
   box.innerHTML = '<div class="box"><div class="note" style="color:#ffb3bf;margin-bottom:10px">Back from PSA</div>'
     + slabHTML(x.card, x.grade, x.label) + '<div class="gbig' + (x.grade === 10 ? " g10" : "") + '">PSA ' + x.grade + '</div>'
-    + '<div class="note" style="margin-top:6px">' + esc(x.label) + (x.grade === 10 ? " — perfect!" : "") + ' · tap to continue</div></div>';
+    + '<div class="note" style="margin-top:6px">' + esc(x.label) + (x.grade === 10 ? " — perfect!" : "")
+    + ' · now worth ' + slabPriceHTML(x.card, x.grade) + ' <span class="note">(raw ' + money(x.card.p || 0) + ')</span> · tap to continue</div></div>';
   box.onclick = () => { box.remove(); psaReveal(rest); };
   document.body.appendChild(box);
   setTimeout(() => {
