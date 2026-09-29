@@ -288,6 +288,46 @@ nav a.psatab.on{background:#c8102e;color:#fff}
 .modal{position:fixed;inset:0;z-index:50;background:#000b;display:flex;overflow:auto;padding:20px}
 .sheet{margin:auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px;width:min(380px,100%)}
 .sheet h3{margin:0 0 6px;font-size:22px}
+.sheet.wide{width:min(900px,100%)}
+.sheet .search{border-radius:999px}
+
+/* trading */
+.thead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between}
+.tgrid{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;margin-top:14px;align-items:stretch}
+.tswap{align-self:center;font-size:30px;color:var(--dim)}
+@media (max-width:760px){.tgrid{grid-template-columns:1fr}.tswap{justify-self:center;rotate:90deg}}
+.tside{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;transition:border-color .3s,box-shadow .3s;min-width:0}
+.tside.ready{border-color:#3ddc84;box-shadow:0 0 0 2px #3ddc8444}
+.tside h3{margin:0 0 10px;display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:17px}
+.tstate{font-size:13px;color:var(--dim);font-weight:700}
+.tside.ready .tstate{color:#3ddc84}
+.titems{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;min-height:130px;align-content:start}
+.titem{position:relative}
+.titem .card .cap{font-size:11px}
+.titem .slab{font-size:9px}
+.titem .x{position:absolute;right:-7px;top:-7px;z-index:4;width:26px;height:26px;border-radius:50%;background:#c8102e;color:#fff;border:2px solid var(--panel);
+  font-weight:900;font-size:16px;line-height:1;padding:0}
+.tnone{grid-column:1/-1;align-self:center;text-align:center}
+.tadd{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.tbux{display:flex;align-items:center;gap:6px;color:var(--dim);font-size:14px}
+.tbux input{width:130px;background:var(--bg2);border:1px solid var(--line);border-radius:999px;padding:7px 12px;color:var(--text);outline:none}
+.tval{margin-top:10px}
+.tact{text-align:center;margin:20px 0 10px}
+.tact .note{margin-top:8px}
+.btn.tbig{font-size:19px;padding:12px 40px}
+.tflash{animation:tflash 1.2s ease-out}
+@keyframes tflash{0%,30%{box-shadow:0 0 0 3px #ffc83d,0 0 30px #ffc83d88}100%{box-shadow:none}}
+.twait{display:flex;align-items:center;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:14px}
+.twait > div{flex:1}
+.howto{line-height:1.8;padding-left:22px}
+.invitepop{position:fixed;right:16px;bottom:16px;z-index:80;background:var(--panel);border:1px solid #ffc83d;border-radius:16px;padding:12px 14px;
+  box-shadow:0 12px 40px #000c,0 0 30px #ffc83d33;width:min(420px,calc(100vw - 32px));animation:invin .35s ease-out}
+@keyframes invin{from{transform:translateY(30px);opacity:0}}
+.invitepop .inv{display:flex;align-items:center;gap:10px}
+.invitepop .inv + .inv{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.tradebar{position:fixed;left:50%;bottom:16px;translate:-50% 0;z-index:75;background:#2a2410;border:1px solid #ffc83d;color:var(--text);
+  border-radius:999px;padding:10px 18px;text-decoration:none;box-shadow:0 10px 30px #000b;white-space:nowrap;max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis}
+.tpick > div{cursor:pointer}
 .sheet label{display:block;font-size:13px;color:var(--dim);margin:12px 0 4px}
 .sheet input{width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--text);outline:none}
 .sheet input:focus{border-color:var(--dim)}
@@ -459,6 +499,7 @@ nav a.psatab.on{background:#c8102e;color:#fff}
       <a href="#open" data-tab="open">Open packs</a>
       <a href="#collection" data-tab="collection">My collection</a>
       <a href="#friends" data-tab="friends">Friends</a>
+      <a href="#trade" data-tab="trade" class="hide" id="tradetab">Trade</a>
       <a href="#earn" data-tab="earn">Earn</a>
       <a href="#psa" data-tab="psa" class="psatab hide" id="psatab">PSA</a>
       <a href="#wheel" data-tab="wheel">Pokémon Wheel</a>
@@ -643,6 +684,7 @@ function route(){
   if(a === "pulls") return showPulls();
   if(a === "earn") return showEarn();
   if(a === "psa") return PSA_ON ? showPSA() : showPacks();
+  if(a === "trade") return TRADE_ON ? showTrade() : showPacks();
   if(a === "wheel") return showWheel();
   if(a === "numbers") return showNumberWheel();
   return showPacks();
@@ -1510,6 +1552,7 @@ async function showCollection(name){
     + (mine ? '' : '<button class="back" onclick="location.hash=\'#friends\'">‹ Friends</button>')
     + '<div class="head"><h1>' + (mine ? "My collection" : esc(p.name) + "'s collection") + '</h1>'
     + (!mine && ME ? '<button class="btn small" onclick="friendToggle(\'' + esc(p.name) + '\',' + !friend + ')">' + (friend ? "Remove friend" : "+ Add friend") + '</button>' : '')
+    + (!mine && ME && TRADE_ON ? ' <button class="btn small tradeb" onclick="tradeInvite(\'' + esc(p.name) + '\')">🤝 Trade</button>' : '')
     + '</div>'
     + '<div class="stats">'
     + stat(ids.length.toLocaleString(), "different cards") + stat(copies.toLocaleString(), "cards in total")
@@ -1986,6 +2029,204 @@ function psaReveal(list){
   }, 500);
 }
 
+/* ---------------- trading ----------------
+   A live trade room with another real player (Archer: "no bots"), anyone by name. Invite them
+   (they need Pack Rip open), they accept, and you're both in the room: each puts in cards, PSA
+   slabs and PokeBux, both press Ready, then both Confirm - and the server swaps it all at once.
+   Changing your offer un-readies both sides. The page asks /trade every couple of seconds while
+   you're signed in: that's how invites pop up anywhere on the site and the room stays live. */
+let TRADE_ON = false, TRADE = null, TRADE_VER = 0, TRADE_WAIT = null, TRADE_TIMER = 0, TRADE_INVITES = [];
+const TRADE_OVER = {done: "", cancelled: "Trade cancelled", declined: "No trade", expired: "No answer", left: "Trade ended", failed: "Trade failed"};
+async function tradePoll(){
+  clearTimeout(TRADE_TIMER);
+  const inRoom = TRADE && (TRADE.status === "open" || TRADE.status === "invite");
+  if(ME){
+    try{ tradeGot(await api("/trade")); }catch(e){}
+  }
+  // slower while the tab is in the background, but never stopped - or a quick look at another tab
+  // would miss invites and drop you out of a trade
+  TRADE_TIMER = setTimeout(tradePoll, document.hidden ? 5000 : inRoom ? 1200 : 2500);
+}
+document.addEventListener("visibilitychange", () => { if(!document.hidden && TRADE_ON) tradePoll(); });
+function tradeGot(r){
+  TRADE_INVITES = r.invites || [];
+  drawInvites();
+  const t = r.trade, was = TRADE;
+  if(t && TRADE_OVER[t.status] !== undefined){   // it just ended
+    TRADE = null;
+    if(t.status === "done") tradeDone(t);
+    else toast("🤝 " + esc(TRADE_OVER[t.status]) + (t.why ? " — " + esc(t.why) : ""));
+    if(location.hash === "#trade") showTrade();
+    drawTradeBar();
+    return;
+  }
+  TRADE = t;
+  if(t && t.ver !== TRADE_VER){
+    const theirs = was && was.id === t.id ? JSON.stringify(sideKey(was.them)) : null;
+    TRADE_VER = t.ver;
+    // someone just accepted your invite: go to the room
+    if(was && was.status === "invite" && t.status === "open" && location.hash !== "#trade"){ location.hash = "#trade"; return; }
+    if(location.hash === "#trade") drawTrade(theirs !== null && theirs !== JSON.stringify(sideKey(t.them)));
+  }
+  if(!t && was && location.hash === "#trade") showTrade();
+  drawTradeBar();
+}
+const sideKey = s => [s.bux, s.cards.map(x => x.card.id + "x" + x.n), s.slabs.map(x => x.sid)];
+async function tradeDone(t){
+  sfx("reveal", 5); coinShower();
+  toast("🤝 Trade done with " + esc(t.them.name) + "!");
+  try{ ME = await api("/me"); drawWho(); }catch(e){}
+}
+// a small box that pops up on any page when someone wants to trade
+function drawInvites(){
+  let box = $("invites");
+  if(!TRADE_INVITES.length || !ME){ if(box) box.remove(); return; }
+  if(!box){ box = document.createElement("div"); box.id = "invites"; box.className = "invitepop"; document.body.appendChild(box); }
+  // each invite is built once (rebuilding the buttons every poll could swallow a tap); only the countdown changes
+  const ids = TRADE_INVITES.map(x => x.id);
+  box.querySelectorAll(".inv").forEach(el => { if(!ids.includes(el.dataset.id)) el.remove(); });
+  TRADE_INVITES.forEach(x => {
+    let el = box.querySelector('.inv[data-id="' + x.id + '"]');
+    if(!el){
+      el = document.createElement("div"); el.className = "inv"; el.dataset.id = x.id;
+      el.innerHTML = '<div>' + avatar(x.from) + '</div><div style="flex:1"><b>' + esc(x.from) + '</b> wants to trade!<div class="note left"></div></div>'
+        + '<button class="btn small main" onclick="tradeAnswer(\'' + esc(x.id) + '\',true)">Trade</button>'
+        + '<button class="btn small" onclick="tradeAnswer(\'' + esc(x.id) + '\',false)">No thanks</button>';
+      box.appendChild(el); sfx("ding");
+    }
+    el.querySelector(".left").textContent = x.left + "s to answer";
+  });
+}
+// when you're in a trade but looking at another page
+function drawTradeBar(){
+  let bar = $("tradebar");
+  const show = TRADE && TRADE.status === "open" && location.hash !== "#trade" && ME;
+  if(!show){ if(bar) bar.remove(); return; }
+  if(!bar){ bar = document.createElement("a"); bar.id = "tradebar"; bar.className = "tradebar"; bar.href = "#trade"; document.body.appendChild(bar); }
+  bar.innerHTML = '🤝 You\'re trading with <b>' + esc(TRADE.them.name) + '</b> — back to the trade ›';
+}
+window.addEventListener("hashchange", drawTradeBar);
+async function tradeInvite(name){
+  name = (name || ($("tname") && $("tname").value) || "").trim();
+  if(!name) return;
+  try{ TRADE = (await api("/trade/invite", {name})).trade; TRADE_VER = TRADE.ver; }
+  catch(e){ if(location.hash === "#trade" && $("terr")) $("terr").textContent = e.message; else toast(esc(e.message)); return; }
+  if(location.hash !== "#trade") location.hash = "#trade"; else drawTrade();
+}
+async function tradeAnswer(id, yes){
+  try{
+    const r = await api("/trade/answer", {id, yes});
+    TRADE_INVITES = TRADE_INVITES.filter(x => x.id !== id); drawInvites();
+    if(yes){ TRADE = r.trade; TRADE_VER = TRADE.ver; if(location.hash !== "#trade") location.hash = "#trade"; else drawTrade(); }
+  }catch(e){ toast(esc(e.message)); TRADE_INVITES = TRADE_INVITES.filter(x => x.id !== id); drawInvites(); }
+}
+async function tradeSend(path, body){
+  if(!TRADE) return;
+  try{
+    const r = await api("/trade/" + path, Object.assign({id: TRADE.id}, body || {}));
+    if(r.trade && TRADE_OVER[r.trade.status] !== undefined) return tradeGot({trade: r.trade, invites: TRADE_INVITES});
+    TRADE = r.trade; if(TRADE) TRADE_VER = TRADE.ver;
+    if(!TRADE){ showTrade(); drawTradeBar(); return; }
+    drawTrade();
+  }catch(e){ toast(esc(e.message)); }
+}
+function tradeCancel(){
+  if(TRADE && TRADE.status === "open" && !confirm("Leave this trade? Nothing gets traded.")) return;
+  tradeSend("cancel");
+}
+// what I'm putting in, in the shape /trade/offer wants
+function myOffer(){
+  const m = TRADE.me;
+  return {cards: Object.fromEntries(m.cards.map(x => [x.card.id, x.n])), slabs: m.slabs.map(x => x.sid), bux: m.bux};
+}
+function offerChange(fn){ const o = myOffer(); fn(o); tradeSend("offer", o); }
+function tradeAddCard(id){
+  offerChange(o => { const n = (o.cards[id] || 0) + 1; if(n <= (ME.cards[id] || 0)) o.cards[id] = n; });
+  closeModal();
+}
+function tradeTakeCard(id){ offerChange(o => { if(--o.cards[id] <= 0) delete o.cards[id]; }); }
+function tradeAddSlab(sid){ offerChange(o => { if(!o.slabs.includes(sid)) o.slabs.push(sid); }); closeModal(); }
+function tradeTakeSlab(sid){ offerChange(o => { o.slabs = o.slabs.filter(s => s !== sid); }); }
+function tradeBux(){
+  const v = Math.max(0, Math.round((parseFloat($("tbux").value) || 0) * 100) / 100);
+  if(v === TRADE.me.bux) return;
+  offerChange(o => { o.bux = v; });
+}
+const sideValue = s => s.cards.reduce((a, x) => a + (x.card.p || 0) * x.n, 0) + s.slabs.reduce((a, x) => a + slabValue(x.card, x.grade), 0) + s.bux;
+
+async function showTrade(){
+  const m = $("main");
+  if(!ME){ m.innerHTML = offlineBanner() + '<h1>Trade</h1>' + needSignIn("trade cards with other players"); return; }
+  if(TRADE && (TRADE.status === "open" || TRADE.status === "invite")) return drawTrade();
+  m.innerHTML = offlineBanner() + '<h1>🤝 Trade</h1><p class="sub">Trade cards, PSA graded cards and PokéBux with another player — live, together. '
+    + 'They need to have Pack Rip open to get your invite.</p>'
+    + '<form class="tools" onsubmit="event.preventDefault();tradeInvite()"><input class="search" id="tname" maxlength="16" placeholder="Player\'s name">'
+    + '<button class="btn main">Send trade invite</button></form><div class="err" id="terr"></div>'
+    + (ME.friends.length ? '<h2>Your friends</h2><div class="people">' + ME.friends.map(f => '<div class="person">' + avatar(f)
+        + '<div class="info"><div class="nm">' + esc(f) + '</div></div><button class="btn small main" onclick="tradeInvite(\'' + esc(f) + '\')">🤝 Trade</button></div>').join("") + '</div>' : '')
+    + '<h2>How it works</h2><ol class="note howto"><li>Send someone an invite — they tap <b>Trade</b> on the pop-up.</li>'
+    + '<li>You each put in what you\'ll give: cards, graded cards, PokéBux.</li><li>When it looks fair, you both press <b>Ready</b>.</li>'
+    + '<li>Then you both press <b>Confirm</b>, and the cards swap. If anything changes, you both have to press Ready again.</li></ol>';
+}
+function drawTrade(flashThem){
+  const m = $("main"), t = TRADE;
+  if(!t) return showTrade();
+  if(t.status === "invite"){
+    m.innerHTML = '<h1>🤝 Trade</h1><div class="twait">' + avatar(t.them.name) + '<div><b>Waiting for ' + esc(t.them.name) + ' to accept…</b>'
+      + '<div class="note">They\'ll see a pop-up on Pack Rip. Invites last a minute.</div></div>'
+      + '<button class="btn" onclick="tradeCancel()">Cancel</button></div>';
+    return;
+  }
+  // partner's cards: remember them so tapping one zooms in
+  t.them.cards.concat(t.me.cards).forEach(x => { if(!cardIndex[x.card.id]) cardIndex[x.card.id] = x.card; });
+  const focused = document.activeElement && document.activeElement.id === "tbux";
+  const both = t.me.ready && t.them.ready;
+  const side = (s, mine) => {
+    const items = s.cards.map(x => '<div class="titem">' + cardTile(x.card, {qty: x.n})
+        + (mine ? '<button class="x" title="Take out one" onclick="tradeTakeCard(\'' + esc(x.card.id) + '\')">−</button>' : '') + '</div>')
+      .concat(s.slabs.map(x => '<div class="titem">' + slabHTML(x.card, x.grade, x.label, ' onclick="zoomCard(\'' + esc(x.card.id) + '\',0,0,\'\',' + x.grade + ')"')
+        + '<div class="slabcap"><span>PSA ' + x.grade + '</span>' + slabPriceHTML(x.card, x.grade) + '</div>'
+        + (mine ? '<button class="x" title="Take it out" onclick="tradeTakeSlab(\'' + esc(x.sid) + '\')">−</button>' : '') + '</div>'));
+    return '<div class="tside' + (s.ready ? " ready" : "") + (!mine && flashThem ? " tflash" : "") + '">'
+      + '<h3><span>' + (mine ? "You give" : esc(s.name) + " gives") + '</span><span class="tstate">' + (s.confirm ? "✅ Confirmed" : s.ready ? "✔ Ready" : "Not ready") + '</span></h3>'
+      + '<div class="titems">' + (items.join("") || '<div class="note tnone">' + (mine ? "Nothing yet — add some cards!" : "Nothing yet…") + '</div>') + '</div>'
+      + (mine ? '<div class="tadd"><button class="btn small" onclick="tradePick()">+ Add cards</button>'
+          + '<label class="tbux">' + COIN + '<input id="tbux" type="number" min="0" step="0.01" inputmode="decimal" value="' + (s.bux || "") + '" placeholder="0" onchange="tradeBux()"> PokéBux</label></div>'
+        : (s.bux ? '<div class="tadd"><span class="tbux">' + COIN + ' <b>' + bux(s.bux) + '</b> PokéBux</span></div>' : ''))
+      + '<div class="note tval">Worth about ' + money(sideValue(s)) + '</div></div>';
+  };
+  const act = !both ? '<button class="btn ' + (t.me.ready ? "" : "main ") + 'tbig" onclick="tradeSend(\'ready\',{on:' + !t.me.ready + '})">' + (t.me.ready ? "Not ready" : "Ready") + '</button>'
+      + '<div class="note">' + (t.me.ready ? "Waiting for " + esc(t.them.name) + " to be ready…" : "Press Ready when the trade looks fair.") + '</div>'
+    : t.me.confirm ? '<button class="btn tbig" disabled>✅ Confirmed</button><div class="note">Waiting for ' + esc(t.them.name) + ' to confirm…</div>'
+    : '<button class="btn claim tbig ready" onclick="tradeSend(\'confirm\')">Confirm trade</button><div class="note">You\'re both ready. Check it one last time!</div>';
+  m.innerHTML = '<div class="thead"><h1>🤝 Trading with ' + esc(t.them.name) + '</h1><button class="btn small" onclick="tradeCancel()">Leave trade</button></div>'
+    + '<div class="tgrid">' + side(t.me, true) + '<div class="tswap">⇄</div>' + side(t.them, false) + '</div>'
+    + '<div class="tact">' + act + '</div>';
+  if(focused && $("tbux")){ $("tbux").focus(); }
+}
+// pick what to put in: your cards (each tap adds one copy) and your graded cards
+async function tradePick(){
+  $("modal").innerHTML = '<div class="sheet wide"><div class="spin"></div></div>';
+  $("modal").classList.remove("hide");
+  try{ ME = await api("/me"); drawWho(); await loadSetsFor(Object.keys(ME.cards).concat((ME.slabs || []).map(x => x.id))); }catch(e){}
+  const o = myOffer();
+  const cards = Object.keys(ME.cards).map(id => cardIndex[id]).filter(c => c && (ME.cards[c.id] - (o.cards[c.id] || 0)) > 0)
+    .sort((a, b) => (b.p || 0) - (a.p || 0));
+  const slabs = (ME.slabs || []).filter(x => x.sid && !o.slabs.includes(x.sid) && cardIndex[x.id]);
+  $("modal").querySelector(".sheet").innerHTML = '<h3>Add to the trade</h3><input class="search" id="tpq" placeholder="Search your cards" oninput="tradePickFilter()" style="width:100%;margin:6px 0 12px">'
+    + (slabs.length ? '<h2 style="margin-top:4px">Graded cards</h2><div class="slabs tpick">' + slabs.map(x => '<div data-n="' + esc(cardIndex[x.id].n.toLowerCase()) + '">'
+        + slabHTML(cardIndex[x.id], x.grade, "", ' onclick="tradeAddSlab(\'' + esc(x.sid) + '\')" style="cursor:pointer"') + '<div class="slabcap"><span>PSA ' + x.grade + '</span>'
+        + slabPriceHTML(cardIndex[x.id], x.grade) + '</div></div>').join("") + '</div>' : '')
+    + '<h2 style="margin-top:14px">Cards</h2>'
+    + (cards.length ? '<div class="cards tpick">' + cards.map(c => '<div data-n="' + esc(c.n.toLowerCase()) + '">' + cardTile(c, {qty: ME.cards[c.id] - (o.cards[c.id] || 0)})
+        .replace('onclick="zoomCard(', 'onclick="tradeAddCard(\'' + esc(c.id) + '\');return false;" data-z="zoomCard(') + '</div>').join("") + '</div>'
+      : '<div class="empty">No more cards to add.</div>');
+}
+function tradePickFilter(){
+  const q = $("tpq").value.trim().toLowerCase();
+  document.querySelectorAll(".tpick > div").forEach(d => { d.style.display = !q || d.dataset.n.includes(q) ? "" : "none"; });
+}
+
 /* ---------------- start ---------------- */
 (async function start(){
   $("mute").textContent = MUTED ? "🔇" : "🔊";
@@ -1994,15 +2235,19 @@ function psaReveal(list){
   // started with --psa answers /psa with 401 "sign in"; the live one answers 404). The page code can
   // be pushed safely - the auto-push hook publishes every change.
   const psaCheck = fetch(SERVER + "/psa", {cache: "no-store"}).then(r => { PSA_ON = r.status !== 404; }).catch(() => {});
-  const tasks = [psaCheck, api("/sets").then(r => {
+  // same for trading: a server without it answers /trade with 404
+  const tradeCheck = fetch(SERVER + "/trade", {cache: "no-store"}).then(r => { TRADE_ON = r.status !== 404; }).catch(() => {});
+  const tasks = [psaCheck, tradeCheck, api("/sets").then(r => {
     SETS = r.sets.filter(s => s.pack);
     SETMAP = Object.fromEntries(r.sets.map(s => [s.id, s]));
   }).catch(() => {})];
   if(TOKEN) tasks.push(api("/me").then(me => { ME = me; dailyToast(me); }).catch(() => {}));
   await Promise.all(tasks);
   $("psatab").classList.toggle("hide", !PSA_ON);
+  $("tradetab").classList.toggle("hide", !TRADE_ON);
   drawWho();
   route();
+  if(TRADE_ON) tradePoll();
 })();
 </script>
 </body>
